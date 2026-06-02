@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Sparkles, Copy, BookOpen, FileText, Heart, Plus, Trash2, Check, Brain } from 'lucide-react';
+import { Sparkles, Copy, BookOpen, FileText, Heart, Plus, Trash2, Check, Brain, X as CloseIcon } from 'lucide-react';
 import { generateExplanation } from '../utils/gemini';
 import { getExplanationHistory, saveExplanation, deleteExplanation, ExplanationItem } from '../utils/supabase';
 import { marked } from 'marked';
@@ -15,6 +15,7 @@ type Mode = 'topic' | 'passage';
 type Depth = 'simple' | 'standard' | 'deep';
 
 export default function DetailedExplanation({ onAddToast }: DetailedExplanationProps) {
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [mode, setMode] = useState<Mode>('topic');
   const [input, setInput] = useState('');
   const [depth, setDepth] = useState<Depth>('standard');
@@ -44,6 +45,7 @@ export default function DetailedExplanation({ onAddToast }: DetailedExplanationP
   const handleExplain = async () => {
     if (!input.trim()) return;
 
+    setIsHistoryOpen(false);
     setIsLoading(true);
     setExplanation('');
 
@@ -87,6 +89,7 @@ export default function DetailedExplanation({ onAddToast }: DetailedExplanationP
   };
 
   const handleLoadItem = (item: ExplanationItem) => {
+    setIsHistoryOpen(false);
     setMode(item.mode);
     setInput(item.input);
     setDepth(item.depth);
@@ -108,6 +111,7 @@ export default function DetailedExplanation({ onAddToast }: DetailedExplanationP
   };
 
   const handleNewExplanation = () => {
+    setIsHistoryOpen(false);
     setInput('');
     setExplanation('');
     setActiveId(null);
@@ -139,8 +143,20 @@ export default function DetailedExplanation({ onAddToast }: DetailedExplanationP
 
   return (
     <div className={styles.wrapper}>
+      {/* Mobile Backdrop Overlay */}
+      {isHistoryOpen && (
+        <div className={styles.sidebarOverlay} onClick={() => setIsHistoryOpen(false)} />
+      )}
+
       {/* ========== SIDEBAR ========== */}
-      <aside className={styles.sidebar}>
+      <aside className={`${styles.sidebar} ${isHistoryOpen ? styles.sidebarOpen : ''}`}>
+        <div className={styles.sidebarMobileHeader}>
+          <span>Explanation History</span>
+          <button className={styles.closeSidebarBtn} onClick={() => setIsHistoryOpen(false)}>
+            <CloseIcon size={18} />
+          </button>
+        </div>
+
         <button className={styles.newExplainBtn} onClick={handleNewExplanation}>
           <Plus size={16} />
           <span>New Explanation</span>
@@ -188,6 +204,16 @@ export default function DetailedExplanation({ onAddToast }: DetailedExplanationP
 
       {/* ========== MAIN CONTENT ========== */}
       <div className={styles.content} ref={mainRef}>
+        {/* Mobile History Toggle Bar */}
+        <div className={styles.mobileHistoryBar}>
+          <button className={styles.mobileHistoryBtn} onClick={() => setIsHistoryOpen(true)}>
+            <Brain size={15} />
+            <span>Explain History</span>
+          </button>
+          <span className={styles.mobileActiveTitle}>
+            {activeTitle || 'New Explanation'}
+          </span>
+        </div>
         {/* Input Card */}
         <div className={styles.inputCard}>
           {activeTitle && (

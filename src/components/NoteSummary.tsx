@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   FileText, Sparkles, BookOpen, HelpCircle, Copy, 
-  Save, Plus, Trash2, ArrowRight, FolderHeart, Check
+  Save, Plus, Trash2, ArrowRight, FolderHeart, Check, X as CloseIcon
 } from 'lucide-react';
 import { generateSummary } from '../utils/gemini';
 import { getNoteSummaries, saveNoteSummary, deleteNoteSummary, syncCurrentStats, SavedSummary } from '../utils/supabase';
@@ -25,6 +25,7 @@ const STYLE_OPTIONS = [
 type SummaryStyle = typeof STYLE_OPTIONS[number]['key'];
 
 export default function NoteSummary({ onAddToast, onJumpToTab }: NoteSummaryProps) {
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [notes, setNotes] = useState('');
   const [style, setStyle] = useState<SummaryStyle>('concise');
   const [summary, setSummary] = useState('');
@@ -130,6 +131,7 @@ export default function NoteSummary({ onAddToast, onJumpToTab }: NoteSummaryProp
   };
 
   const handleNewSummary = () => {
+    setIsHistoryOpen(false);
     setNotes('');
     setSummary('');
     setActiveId(null);
@@ -137,6 +139,7 @@ export default function NoteSummary({ onAddToast, onJumpToTab }: NoteSummaryProp
   };
 
   const handleLoadSummary = (item: SavedSummary) => {
+    setIsHistoryOpen(false);
     setNotes(item.originalNotes);
     setSummary(item.summaryText);
     setStyle(item.style as SummaryStyle);
@@ -177,8 +180,20 @@ export default function NoteSummary({ onAddToast, onJumpToTab }: NoteSummaryProp
 
   return (
     <div className={styles.wrapper}>
+      {/* Mobile Backdrop Overlay */}
+      {isHistoryOpen && (
+        <div className={styles.sidebarOverlay} onClick={() => setIsHistoryOpen(false)} />
+      )}
+
       {/* ============ SIDEBAR ============ */}
-      <aside className={styles.sidebar}>
+      <aside className={`${styles.sidebar} ${isHistoryOpen ? styles.sidebarOpen : ''}`}>
+        <div className={styles.sidebarMobileHeader}>
+          <span>Summary History</span>
+          <button className={styles.closeSidebarBtn} onClick={() => setIsHistoryOpen(false)}>
+            <CloseIcon size={18} />
+          </button>
+        </div>
+
         <button className={styles.newSummaryBtn} onClick={handleNewSummary}>
           <Plus size={16} />
           <span>New Summary</span>
@@ -225,6 +240,17 @@ export default function NoteSummary({ onAddToast, onJumpToTab }: NoteSummaryProp
 
       {/* ============ MAIN AREA ============ */}
       <div className={styles.content} ref={mainRef}>
+        {/* Mobile History Toggle Bar */}
+        <div className={styles.mobileHistoryBar}>
+          <button className={styles.mobileHistoryBtn} onClick={() => setIsHistoryOpen(true)}>
+            <FileText size={15} />
+            <span>Summary History</span>
+          </button>
+          <span className={styles.mobileActiveTitle}>
+            {activeTitle || 'New Summary'}
+          </span>
+        </div>
+
         {/* Input Card */}
         <div className={styles.inputCard}>
           <div className={styles.titleRow}>

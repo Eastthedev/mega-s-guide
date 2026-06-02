@@ -18,6 +18,7 @@ interface AIChatProps {
 }
 
 export default function AIChat({ onAddToast }: AIChatProps) {
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string>('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -119,6 +120,7 @@ export default function AIChat({ onAddToast }: AIChatProps) {
 
   // Switch chat sessions
   const handleSelectSession = async (sessionId: string) => {
+    setIsHistoryOpen(false);
     if (sessionId === currentSessionId) return;
     setIsLoading(true);
     setCurrentSessionId(sessionId);
@@ -135,6 +137,7 @@ export default function AIChat({ onAddToast }: AIChatProps) {
 
   // Start new clean chat session
   const handleNewChat = () => {
+    setIsHistoryOpen(false);
     const newSessId = generateSessionId();
     setCurrentSessionId(newSessId);
     setMessages([]);
@@ -239,8 +242,20 @@ export default function AIChat({ onAddToast }: AIChatProps) {
 
   return (
     <div className={styles.chatWrapper}>
+      {/* Mobile Backdrop Overlay */}
+      {isHistoryOpen && (
+        <div className={styles.sidebarOverlay} onClick={() => setIsHistoryOpen(false)} />
+      )}
+
       {/* ChatGPT-style Sidebar */}
-      <div className={styles.chatSidebar}>
+      <div className={`${styles.chatSidebar} ${isHistoryOpen ? styles.sidebarOpen : ''}`}>
+        <div className={styles.sidebarMobileHeader}>
+          <span>Chat History</span>
+          <button className={styles.closeSidebarBtn} onClick={() => setIsHistoryOpen(false)}>
+            <X size={18} />
+          </button>
+        </div>
+
         <button className={styles.newChatBtn} onClick={handleNewChat}>
           <Plus size={16} />
           <span>New Chat</span>
@@ -281,6 +296,17 @@ export default function AIChat({ onAddToast }: AIChatProps) {
 
       {/* Main Chat Area */}
       <div className={styles.chatContent}>
+        {/* Mobile History Toggle Bar */}
+        <div className={styles.mobileHistoryBar}>
+          <button className={styles.mobileHistoryBtn} onClick={() => setIsHistoryOpen(true)}>
+            <MessageSquare size={15} />
+            <span>Chat History</span>
+          </button>
+          <span className={styles.mobileActiveTitle}>
+            {sessions.find(s => s.id === currentSessionId)?.title || 'New Chat'}
+          </span>
+        </div>
+
         {/* Set Study Context Panel */}
         <div className={styles.contextPanel}>
           <button 

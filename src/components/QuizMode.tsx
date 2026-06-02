@@ -30,6 +30,8 @@ const scoreColor = (pct: number) => {
 };
 
 export default function QuizMode({ onAddToast, initialNotes }: QuizModeProps) {
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [reviewAttempt, setReviewAttempt] = useState<QuizAttempt | null>(null);
   const [notes, setNotes] = useState('');
   const [count, setCount] = useState<number>(5);
   const [type, setType] = useState<'mcq' | 'tf' | 'mixed'>('mcq');
@@ -69,6 +71,8 @@ export default function QuizMode({ onAddToast, initialNotes }: QuizModeProps) {
   const handleGenerate = async () => {
     if (!notes.trim()) return;
 
+    setReviewAttempt(null);
+    setIsHistoryOpen(false);
     setIsLoading(true);
     setQuestions([]);
     setCurrentQIndex(0);
@@ -106,6 +110,18 @@ export default function QuizMode({ onAddToast, initialNotes }: QuizModeProps) {
     if (isAnswered) return;
     setSelectedOption(idx);
     setIsAnswered(true);
+
+    // Save the user's selected index in the questions state
+    setQuestions(prev => {
+      const copy = [...prev];
+      if (copy[currentQIndex]) {
+        copy[currentQIndex] = {
+          ...copy[currentQIndex],
+          userSelectedIndex: idx
+        } as any;
+      }
+      return copy;
+    });
 
     const isCorrect = idx === questions[currentQIndex].correctIndex;
     if (isCorrect) {
@@ -149,11 +165,19 @@ export default function QuizMode({ onAddToast, initialNotes }: QuizModeProps) {
       localStorage.setItem('megas_guide_sessions_count', (sessCount + 1).toString());
 
       const saveAttempt = async () => {
+        // Construct the updated questions array with the user's latest choice
+        const finalQuestions = questions.map((q, qidx) => {
+          if (qidx === currentQIndex) {
+            return { ...q, userSelectedIndex: selectedOption };
+          }
+          return q;
+        });
+
         const attempt: QuizAttempt = {
           id: Date.now().toString(),
           score: finalScore,
           totalQuestions: questions.length,
-          questions,
+          questions: finalQuestions,
           originalNotes: notes,
           date: new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
         };
@@ -170,6 +194,8 @@ export default function QuizMode({ onAddToast, initialNotes }: QuizModeProps) {
   };
 
   const handleReplayAttempt = (attempt: QuizAttempt) => {
+    setReviewAttempt(null);
+    setIsHistoryOpen(false);
     setNotes(attempt.originalNotes || '');
     setCurrentTopic(buildTopic(attempt.originalNotes || ''));
     setQuestions(attempt.questions || []);
@@ -182,6 +208,115 @@ export default function QuizMode({ onAddToast, initialNotes }: QuizModeProps) {
     onAddToast("Quiz reloaded — let's beat that score! 🎓✨");
   };
 
+  const handleSelectAttempt = (attempt: QuizAttempt) => {
+    setReviewAttempt(attempt);
+    setIsHistoryOpen(false);
+    onAddToast(`Reviewing attempt from ${attempt.date}! 📊`);
+  };
+
+  const renderReviewAttempt = () => {
+    if (!reviewAttempt) return null;
+    const pct = Math.round((reviewAttempt.score / reviewAttempt.totalQuestions) * 100);
+    const topic = buildTopic(reviewAttempt.originalNotes || '');
+
+    return (
+      <div className={styles.reviewContainer}>
+        <div className={styles.reviewHeader}>
+          <div className={styles.reviewTitleInfo}>
+            <h3 className={styles.reviewTitle}>Review Quiz: {topic}</h3>
+            <span className={styles.reviewMetaDate}>Completed on {reviewAttempt.date}</span>
+          </div>
+          <div className={styles.reviewHeaderRight}>
+            <span className={`${styles.scoreBadge} ${scoreColor(pct)}`}>
+              Score: {reviewAttempt.score}/{reviewAttempt.totalQuestions} ({pct}%)
+            </span>
+            <button className={styles.exitReviewBtn} onClick={() => setReviewAttempt(null)}>
+              Exit Review
+            </button>
+          </div>
+        </div>
+
+        <div className={styles.reviewQuestionsList}>
+          {reviewAttempt.questions.map((q, qidx) => {
+            const isUserCorrect = q.userSelectedIndex === q.correctIndex;
+            return (
+              <div key={qidx} className={styles.reviewQuestionCard}>
+                <div className={styles.reviewQuestionMeta}>
+                  <span>Question {qidx + 1} of {reviewAttempt.totalQuestions}</span>
+                  {q.userSelectedIndex !== undefined && q.userSelectedIndex !== null ? (
+                    isUserCorrect ? (
+                      <span className={styles.reviewCorrectBadge}>✅ Correct</span>
+                    ) : (
+                      <span className={styles.reviewIncorrectBadge}>❌ Incorrect</span>
+                    )
+                  ) : (
+                    <span className={styles.reviewUnansweredBadge}>⚠️ Unanswered</span>
+                  )}
+                </div>
+
+                <div className={styles.reviewQuestionText}>{q.question}</div>
+
+                <div className={styles.reviewOptionsGrid}>
+                  {q.options.map((option: string, oIdx: number) => {
+                    const isCorrect = oIdx === q.correctIndex;
+                    const isSelected = oIdx === q.userSelectedIndex;
+                    let optionStyleClass = styles.reviewOptionBtn;
+                    if (isCorrect) {
+                      optionStyleClass += ` ${styles.optionCorrect}`;
+                    } else if (isSelected) {
+                      optionStyleClass += ` ${styles.optionWrong}`;
+                    } else {
+                      optionStyleClass += ` ${styles.optionUnselected}`;
+                    }
+
+                    return (
+                      <div
+                        key={oIdx}
+                        className={optionStyleClass}
+                      >
+                        <span>{option}</span>
+                        <div className={styles.optionStatusIcon}>
+                          {isCorrect && <Check size={16} />}
+                          {isSelected && !isCorrect && <CloseIcon size={16} />}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className={styles.reviewExplanationCard}>
+                  <span className={styles.reviewExplanationTitle}>Clinical Rationale</span>
+                  <p className={styles.reviewExplanationText}>{q.explanation}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className={styles.reviewFooterActions}>
+          <button 
+            className={`${styles.actionBtn} ${styles.secondaryAction}`} 
+            onClick={() => {
+              setReviewAttempt(null);
+              setNotes(reviewAttempt.originalNotes);
+              setCurrentTopic(buildTopic(reviewAttempt.originalNotes));
+              setQuestions([]);
+            }}
+          >
+            Adjust Options / Edit Notes
+          </button>
+          <button 
+            className={`${styles.actionBtn} ${styles.primaryAction}`} 
+            onClick={() => handleReplayAttempt(reviewAttempt)}
+          >
+            <RotateCcw size={16} style={{ marginRight: '6px', verticalAlign: 'middle', display: 'inline' }} />
+            Retake Quiz Now
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   const handleDeleteAttempt = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     await deleteQuizAttempt(id);
@@ -190,6 +325,8 @@ export default function QuizMode({ onAddToast, initialNotes }: QuizModeProps) {
   };
 
   const handleNewQuiz = () => {
+    setReviewAttempt(null);
+    setIsHistoryOpen(false);
     setQuestions([]);
     setCurrentQIndex(0);
     setSelectedOption(null);
@@ -222,8 +359,20 @@ export default function QuizMode({ onAddToast, initialNotes }: QuizModeProps) {
 
   return (
     <div className={styles.wrapper}>
+      {/* Mobile Backdrop Overlay */}
+      {isHistoryOpen && (
+        <div className={styles.sidebarOverlay} onClick={() => setIsHistoryOpen(false)} />
+      )}
+
       {/* ========== SIDEBAR ========== */}
-      <aside className={styles.sidebar}>
+      <aside className={`${styles.sidebar} ${isHistoryOpen ? styles.sidebarOpen : ''}`}>
+        <div className={styles.sidebarMobileHeader}>
+          <span>Quiz History</span>
+          <button className={styles.closeSidebarBtn} onClick={() => setIsHistoryOpen(false)}>
+            <CloseIcon size={18} />
+          </button>
+        </div>
+
         <button className={styles.newQuizBtn} onClick={handleNewQuiz}>
           <Plus size={16} />
           <span>New Quiz</span>
@@ -245,7 +394,7 @@ export default function QuizMode({ onAddToast, initialNotes }: QuizModeProps) {
                 <div
                   key={attempt.id}
                   className={styles.historyItem}
-                  onClick={() => handleReplayAttempt(attempt)}
+                  onClick={() => handleSelectAttempt(attempt)}
                 >
                   <div className={styles.historyItemMain}>
                     <span className={styles.historyTopic}>{topic}</span>
@@ -272,7 +421,25 @@ export default function QuizMode({ onAddToast, initialNotes }: QuizModeProps) {
 
       {/* ========== MAIN CONTENT ========== */}
       <div className={styles.content}>
-        {questions.length === 0 && !isLoading ? (
+        {/* Mobile History Toggle Bar */}
+        <div className={styles.mobileHistoryBar}>
+          <button className={styles.mobileHistoryBtn} onClick={() => setIsHistoryOpen(true)}>
+            <BarChart2 size={15} />
+            <span>Quiz History</span>
+          </button>
+          <span className={styles.mobileActiveTitle}>
+            {reviewAttempt 
+              ? `Review: ${buildTopic(reviewAttempt.originalNotes)}` 
+              : questions.length > 0 
+                ? `Active Quiz: ${currentTopic}` 
+                : 'New Quiz'
+            }
+          </span>
+        </div>
+
+        {reviewAttempt ? (
+          renderReviewAttempt()
+        ) : questions.length === 0 && !isLoading ? (
           /* Setup card */
           <div className={styles.setupCard}>
             <div className={styles.titleRow}>
