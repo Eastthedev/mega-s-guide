@@ -157,9 +157,13 @@ export default function QuizMode({ onAddToast, initialNotes }: QuizModeProps) {
           originalNotes: notes,
           date: new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
         };
-        await saveQuizAttempt(attempt);
-        await syncCurrentStats();
-        loadHistory();
+        const saved = await saveQuizAttempt(attempt);
+        if (saved) {
+          await syncCurrentStats();
+          loadHistory();
+        } else {
+          onAddToast("Failed to save quiz attempt to database. ❌");
+        }
       };
       saveAttempt();
     }

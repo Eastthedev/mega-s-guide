@@ -87,9 +87,13 @@ export default function NoteSummary({ onAddToast, onJumpToTab }: NoteSummaryProp
         style,
         date: new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
       };
-      await saveNoteSummary(newSummary);
-      await loadSavedSummaries();
-      await syncCurrentStats();
+      const saved = await saveNoteSummary(newSummary);
+      if (saved) {
+        await loadSavedSummaries();
+        await syncCurrentStats();
+      } else {
+        onAddToast('Failed to auto-save summary to database. ❌');
+      }
 
       // Scroll to output
       setTimeout(() => {
@@ -116,9 +120,13 @@ export default function NoteSummary({ onAddToast, onJumpToTab }: NoteSummaryProp
       style,
       date: new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
     };
-    await saveNoteSummary(newSummary);
-    await loadSavedSummaries();
-    onAddToast('Summary saved! 📂❤️');
+    const saved = await saveNoteSummary(newSummary);
+    if (saved) {
+      await loadSavedSummaries();
+      onAddToast('Summary saved! 📂❤️');
+    } else {
+      onAddToast('Failed to save summary to database. ❌');
+    }
   };
 
   const handleNewSummary = () => {

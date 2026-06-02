@@ -80,8 +80,12 @@ export default function Flashcards({ onAddToast, initialNotes }: FlashcardsProps
       setActiveDeckTitle(cleanTitle);
       
       onAddToast(`Generated ${generatedCards.length} flashcards! 🃏`);
-      await saveFlashcardDeck(deckId, cleanTitle, { cards: generatedCards, grades: {} }, notes);
-      await loadSavedDecks();
+      const saved = await saveFlashcardDeck(deckId, cleanTitle, { cards: generatedCards, grades: {} }, notes);
+      if (saved) {
+        await loadSavedDecks();
+      } else {
+        onAddToast("Failed to save generated deck to database. ❌");
+      }
     } catch (err: any) {
       console.error(err);
       onAddToast(`Error creating flashcards: ${err.message || 'Check your configuration.'}`);
@@ -107,7 +111,10 @@ export default function Flashcards({ onAddToast, initialNotes }: FlashcardsProps
 
     // Auto-save progress state
     if (activeDeckId) {
-      await saveFlashcardDeck(activeDeckId, activeDeckTitle, { cards, grades: updatedGrades }, notes);
+      const saved = await saveFlashcardDeck(activeDeckId, activeDeckTitle, { cards, grades: updatedGrades }, notes);
+      if (!saved) {
+        onAddToast("Failed to save progress to database. ❌");
+      }
     }
 
     const totalGradesCount = Object.keys(updatedGrades).length;

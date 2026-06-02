@@ -3,6 +3,17 @@
 -- Paste this into your Supabase SQL Editor and run it!
 -- ====================================================
 
+-- DROP OLD INCORRECT TABLES IF THEY EXIST TO PREVENT CONFLICTS
+DROP TABLE IF EXISTS user_stats CASCADE;
+DROP TABLE IF EXISTS note_summaries CASCADE;
+DROP TABLE IF EXISTS flashcard_decks CASCADE;
+DROP TABLE IF EXISTS quiz_history CASCADE;
+DROP TABLE IF EXISTS chat_history CASCADE;
+DROP TABLE IF EXISTS research_history CASCADE;
+DROP TABLE IF EXISTS chat_sessions CASCADE;
+DROP TABLE IF EXISTS research_sessions CASCADE;
+DROP TABLE IF EXISTS explanation_history CASCADE;
+
 -- 1. Create table for user stats & achievements
 -- Note: id is UUID and references auth.users(id) directly
 CREATE TABLE IF NOT EXISTS user_stats (
