@@ -1,0 +1,478 @@
+/* Layout and general wrappers */
+.appWrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-app);
+}
+
+.dashboardLayout {
+  display: flex;
+  flex: 1;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.mainContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-app);
+  position: relative;
+  overflow: hidden;
+}
+
+.dashboardBody {
+  flex: 1;
+  padding: 2rem;
+  overflow-y: auto;
+}
+
+/* Toast styling */
+.toastContainer {
+  position: fixed;
+  bottom: 2rem;
+  left: 2rem;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 320px;
+}
+
+.toast {
+  background: var(--bg-card);
+  border-left: 4px solid var(--color-teal);
+  box-shadow: 0 10px 25px -5px rgba(13,27,42,0.1), 0 8px 16px -4px rgba(13,27,42,0.05);
+  padding: 0.8rem 1.2rem;
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  animation: slideInLeft 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideInLeft {
+  from { transform: translateX(-100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.closeToastBtn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+/* Landing Page Styles */
+.landingPage {
+  background: var(--bg-gradient);
+  display: flex;
+  flex-direction: column;
+}
+
+.heroSection {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 4rem 2rem;
+  overflow: hidden;
+  text-align: center;
+}
+
+.animatedHeroBg {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(135deg, rgba(10, 126, 164, 0.95), rgba(242, 167, 187, 0.92), rgba(13, 27, 42, 0.98));
+  background-size: 300% 300%;
+  animation: gradient-shift 12s ease infinite;
+  z-index: 1;
+}
+
+.heroContent {
+  position: relative;
+  z-index: 5;
+  color: white;
+  max-width: 800px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.pillLabel {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  padding: 0.4rem 1.2rem;
+  border-radius: 9999px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  border: 1px solid rgba(255,255,255,0.2);
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.heroHeadingRow {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.heroTitle {
+  font-family: var(--font-serif);
+  font-size: 5rem;
+  font-weight: 800;
+  line-height: 1.1;
+  color: white;
+  text-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.heroSubtitle {
+  font-size: 1.5rem;
+  color: #f8fffe;
+  max-width: 600px;
+  line-height: 1.4;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.typewriterText {
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  font-style: italic;
+  font-weight: 600;
+  color: var(--color-gold);
+  min-height: 2rem;
+  border-right: 2px solid var(--color-gold);
+  animation: blink-caret 0.75s step-end infinite;
+  padding-right: 4px;
+}
+
+.ctaGroup {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.heroPrimaryBtn {
+  background: white;
+  color: var(--color-teal);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+.heroPrimaryBtn:hover {
+  background: #f0fbfb;
+  transform: translateY(-3px);
+  box-shadow: 0 15px 30px rgba(0,0,0,0.2);
+}
+
+.heroGhostBtn {
+  background: transparent;
+  color: white;
+  border: 2px solid white;
+}
+.heroGhostBtn:hover {
+  background: rgba(255,255,255,0.1);
+  transform: translateY(-3px);
+}
+
+/* Why Section */
+.whySection {
+  padding: 6rem 2rem;
+  max-width: 1000px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.whyHeader {
+  margin-bottom: 4rem;
+}
+
+.sectionTitle {
+  font-family: var(--font-serif);
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+}
+
+.sectionDesc {
+  color: var(--text-secondary);
+  font-size: 1.05rem;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.whyGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 2rem;
+}
+
+.featureCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: var(--shadow-card);
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  opacity: 0;
+  transform: translateY(30px);
+}
+
+.featureCardVisible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.featureCard:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-warm);
+  border-color: var(--color-teal);
+}
+
+.featureIcon {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 12px;
+  background: var(--color-teal-light);
+  color: var(--color-teal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.featureTitle {
+  font-size: 1.25rem;
+  font-family: var(--font-serif);
+}
+
+.featureText {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* How It Works */
+.howSection {
+  padding: 6rem 2rem;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.howContent {
+  max-width: 1000px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.stepsContainer {
+  margin-top: 5rem;
+  display: flex;
+  justify-content: space-between;
+  position: relative;
+  gap: 3rem;
+}
+
+.stepsLine {
+  position: absolute;
+  top: 2rem;
+  left: 10%;
+  width: 80%;
+  height: 4px;
+  background: var(--border-color);
+  z-index: 1;
+}
+
+.stepsLineProgress {
+  height: 100%;
+  background: var(--color-teal);
+  width: 0%;
+  transition: width 1.5s ease;
+}
+
+.stepNode {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 2;
+  position: relative;
+  gap: 1rem;
+}
+
+.stepBadge {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 50%;
+  background: var(--bg-card);
+  border: 4px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 1.25rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-card);
+  transition: all 0.4s;
+}
+
+.stepBadgeActive {
+  border-color: var(--color-teal);
+  color: var(--color-teal);
+  background: var(--color-teal-light);
+  transform: scale(1.1);
+}
+
+.stepTitle {
+  font-family: var(--font-serif);
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.stepDesc {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  max-width: 250px;
+}
+
+/* Motivation Strip */
+.motivationStrip {
+  background: var(--color-teal);
+  color: white;
+  padding: 4rem 2rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.motivationText {
+  font-family: var(--font-serif);
+  font-size: 1.8rem;
+  font-weight: 700;
+  font-style: italic;
+  max-width: 800px;
+  margin: 0 auto;
+  line-height: 1.4;
+  position: relative;
+  z-index: 5;
+}
+
+.motivationBgHearts {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+  opacity: 0.15;
+  z-index: 1;
+}
+
+/* Footer styling */
+.footer {
+  background: var(--color-blush-light);
+  border-top: 1px solid var(--border-color);
+  padding: 4rem 2rem;
+}
+
+.footerContent {
+  max-width: 1000px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2rem;
+}
+
+.footerLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.footerHeading {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.footerTagline {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.footerLinks {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.footerLink {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: color 0.2s;
+  cursor: pointer;
+}
+
+.footerLink:hover {
+  color: var(--color-teal);
+}
+
+@media (max-width: 768px) {
+  .heroTitle {
+    font-size: 3.5rem;
+  }
+  
+  .stepsContainer {
+    flex-direction: column;
+    gap: 2rem;
+  }
+  
+  .stepsLine {
+    left: 2rem;
+    top: 10%;
+    width: 4px;
+    height: 80%;
+  }
+  
+  .stepNode {
+    flex-direction: row;
+    align-items: flex-start;
+    text-align: left;
+    gap: 1.5rem;
+  }
+  
+  .stepBadge {
+    flex-shrink: 0;
+  }
+  
+  .footerContent {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .footerLinks {
+    justify-content: center;
+  }
+  
+  .dashboardLayout {
+    height: 100vh;
+  }
+  
+  .dashboardBody {
+    padding: 1rem;
+  }
+}
