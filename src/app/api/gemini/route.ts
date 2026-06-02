@@ -1,6 +1,6 @@
 import type { NextRequest } from 'next/server';
 
-const DEFAULT_API_KEY = 'AIzaSyCjPd-vm_Rw9lCLi3SSGIKr6y5Jw_vdpAY';
+const DEFAULT_API_KEY = process.env.GEMINI_API_KEY || '';
 const MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest'];
 
 export async function POST(request: NextRequest) {
@@ -13,6 +13,9 @@ export async function POST(request: NextRequest) {
     }
 
     const key = (apiKey && apiKey.trim()) ? apiKey.trim() : DEFAULT_API_KEY;
+    if (!key) {
+      return Response.json({ error: 'Gemini API Key is not configured on the server. Please check your environment variables.' }, { status: 500 });
+    }
     let lastError: any = null;
 
     for (const model of MODELS) {

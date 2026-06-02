@@ -1,11 +1,11 @@
-export const DEFAULT_API_KEY = "AIzaSyCjPd-vm_Rw9lCLi3SSGIKr6y5Jw_vdpAY";
+export const DEFAULT_API_KEY = "";
 
 export function getStoredApiKey(): string {
   if (typeof window !== "undefined") {
     const key = localStorage.getItem("megas_guide_api_key");
-    return key && key.trim() !== "" ? key : DEFAULT_API_KEY;
+    return key && key.trim() !== "" ? key : "";
   }
-  return DEFAULT_API_KEY;
+  return "";
 }
 
 export function setStoredApiKey(key: string) {
