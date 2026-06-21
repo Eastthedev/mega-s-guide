@@ -6,12 +6,16 @@ import path from 'path';
 import { pathToFileURL, fileURLToPath } from 'url';
 import fs from 'fs';
 
-// Resolve path to the worker using import.meta.url so Next.js static tracing packages it
-const absoluteWorkerPath = fileURLToPath(
-  new URL(
-    '../../../../node_modules/pdf-parse/dist/pdf-parse/esm/pdf.worker.mjs',
-    import.meta.url
-  )
+// Tracing helper to force Next.js / Vercel bundler to copy the worker file into the standalone deployment
+const _tracerUrl = typeof window === 'undefined' ? new URL(
+  '../../../../node_modules/pdf-parse/dist/pdf-parse/esm/pdf.worker.mjs',
+  import.meta.url
+) : null;
+
+// Resolve path at runtime using process.cwd() which is stable across dev and production bundle depths
+const absoluteWorkerPath = path.join(
+  process.cwd(),
+  'node_modules/pdf-parse/dist/pdf-parse/esm/pdf.worker.mjs'
 );
 
 let workerSrc: string;
