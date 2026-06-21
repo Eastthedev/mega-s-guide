@@ -4,12 +4,25 @@ import mammoth from 'mammoth';
 import JSZip from 'jszip';
 import path from 'path';
 import { pathToFileURL } from 'url';
+import fs from 'fs';
 
-// Configure the PDF worker using absolute file:// URL to resolve from local node_modules
-const workerPath = pathToFileURL(
-  path.join(process.cwd(), 'node_modules/pdf-parse/dist/pdf-parse/esm/pdf.worker.mjs')
-).toString();
-PDFParse.setWorker(workerPath);
+// Resolve path to the worker
+const absoluteWorkerPath = path.join(
+  process.cwd(),
+  'node_modules/pdf-parse/dist/pdf-parse/esm/pdf.worker.mjs'
+);
+
+let workerSrc: string;
+try {
+  // Read the worker code and encode it as a data URL so ESM loader resolves it in serverless/lambdas
+  const workerCode = fs.readFileSync(absoluteWorkerPath, 'utf8');
+  workerSrc = `data:text/javascript;base64,${Buffer.from(workerCode).toString('base64')}`;
+} catch (err) {
+  console.warn("Local worker read failed, falling back to file:// path:", err);
+  workerSrc = pathToFileURL(absoluteWorkerPath).toString();
+}
+
+PDFParse.setWorker(workerSrc);
 
 // Helper to parse PPTX using JSZip
 async function parsePptx(buffer: Buffer): Promise<string> {

@@ -135,7 +135,7 @@ function InteractiveViewer({ type, content, title = "Visual Guide" }: Interactiv
           }}
         >
           {type === 'svg' ? (
-            <div dangerouslySetInnerHTML={{ __html: content }} style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }} />
+            <div dangerouslySetInnerHTML={{ __html: content.replace(/<svg([^>]*?)\s+height=["']auto["']/gi, '<svg$1').replace(/<svg([^>]*?)\s+width=["']auto["']/gi, '<svg$1') }} style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }} />
           ) : (
             <img src={content} alt={title} style={{ width: '100%', height: '100%', objectFit: 'contain' }} draggable={false} />
           )}
