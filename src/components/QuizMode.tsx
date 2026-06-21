@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Sparkles, HelpCircle, ArrowRight, RotateCcw, 
   Check, X as CloseIcon, Award, ChevronDown, ChevronUp, 
-  Plus, Trash2, FolderHeart, BarChart2
+  Plus, Trash2, FolderHeart, BarChart2, Paperclip
 } from 'lucide-react';
-import { generateQuiz, QuizQuestion } from '../utils/gemini';
+import { generateQuiz, QuizQuestion, parseDocument } from '../utils/gemini';
 import { getQuizHistory, saveQuizAttempt, deleteQuizAttempt, syncCurrentStats, QuizAttempt } from '../utils/supabase';
 import confetti from 'canvas-confetti';
 import styles from './QuizMode.module.css';
@@ -36,6 +36,31 @@ export default function QuizMode({ onAddToast, initialNotes }: QuizModeProps) {
   const [count, setCount] = useState<number>(5);
   const [type, setType] = useState<'mcq' | 'tf' | 'mixed'>('mcq');
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard' | 'mixed'>('medium');
+  const [isParsing, setIsParsing] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsParsing(true);
+    const originalNotes = notes;
+    setNotes(`[Reading file: "${file.name}"... please wait 🩺🧠]`);
+
+    try {
+      const parsedText = await parseDocument(file);
+      setNotes(parsedText);
+      onAddToast(`Loaded document: "${file.name}"! 📂`);
+    } catch (err: any) {
+      console.error(err);
+      setNotes(originalNotes);
+      onAddToast(`Error reading document: ${err.message || 'Parsing failed.'} ❌`);
+    } finally {
+      setIsParsing(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [currentQIndex, setCurrentQIndex] = useState(0);
@@ -452,11 +477,30 @@ export default function QuizMode({ onAddToast, initialNotes }: QuizModeProps) {
               </button>
             </div>
 
+            <div className={styles.fileUploadRow}>
+              <button 
+                className={styles.uploadBtn}
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isLoading || isParsing}
+              >
+                <Paperclip size={14} />
+                <span>{isParsing ? 'Reading file...' : 'Upload Document (.pdf, .docx, .pptx, .txt)'}</span>
+              </button>
+              <input 
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                accept=".pdf,.docx,.pptx,.txt,.md"
+                style={{ display: 'none' }}
+              />
+            </div>
+
             <textarea
               className={styles.textarea}
               placeholder="Paste your study notes here to auto-generate customized mock exams..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
+              disabled={isLoading || isParsing}
             />
 
             <div className={styles.controlsGrid}>

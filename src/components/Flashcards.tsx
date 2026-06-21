@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Sparkles, BookOpen, HelpCircle, ArrowLeft, ArrowRight, 
-  RotateCw, Shuffle, Save, FolderHeart, Award, Heart, Plus, Trash2, Eye, X
+  RotateCw, Shuffle, Save, FolderHeart, Award, Heart, Plus, Trash2, Eye, X,
+  Paperclip
 } from 'lucide-react';
-import { generateFlashcards, Flashcard } from '../utils/gemini';
+import { generateFlashcards, Flashcard, parseDocument } from '../utils/gemini';
 import { getSavedDecks, saveFlashcardDeck, deleteFlashcardDeck, SavedDeck, syncCurrentStats } from '../utils/supabase';
 import confetti from 'canvas-confetti';
 import styles from './Flashcards.module.css';
@@ -19,6 +20,31 @@ export default function Flashcards({ onAddToast, initialNotes }: FlashcardsProps
   const [notes, setNotes] = useState('');
   const [count, setCount] = useState<number>(10);
   const [focusArea, setFocusArea] = useState('');
+  const [isParsing, setIsParsing] = useState(false);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsParsing(true);
+    const originalNotes = notes;
+    setNotes(`[Reading file: "${file.name}"... please wait 🩺🧠]`);
+
+    try {
+      const parsedText = await parseDocument(file);
+      setNotes(parsedText);
+      onAddToast(`Loaded document: "${file.name}"! 📂`);
+    } catch (err: any) {
+      console.error(err);
+      setNotes(originalNotes);
+      onAddToast(`Error reading document: ${err.message || 'Parsing failed.'} ❌`);
+    } finally {
+      setIsParsing(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
   
   // Active study deck
   const [activeDeckId, setActiveDeckId] = useState<string | null>(null);
@@ -306,11 +332,30 @@ export default function Flashcards({ onAddToast, initialNotes }: FlashcardsProps
               </button>
             </div>
 
+            <div className={styles.fileUploadRow}>
+              <button 
+                className={styles.uploadBtn}
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isLoading || isParsing}
+              >
+                <Paperclip size={14} />
+                <span>{isParsing ? 'Reading file...' : 'Upload Document (.pdf, .docx, .pptx, .txt)'}</span>
+              </button>
+              <input 
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                accept=".pdf,.docx,.pptx,.txt,.md"
+                style={{ display: 'none' }}
+              />
+            </div>
+
             <textarea
               className={styles.textarea}
               placeholder="Paste your study notes here to auto-generate active-recall flashcards..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
+              disabled={isLoading || isParsing}
             />
 
             <div className={styles.controlsRow}>

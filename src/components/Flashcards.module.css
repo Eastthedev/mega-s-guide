@@ -770,3 +770,35 @@
     grid-template-columns: 1fr;
   }
 }
+
+.fileUploadRow {
+  margin-bottom: 0.5rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.uploadBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.9rem;
+  background: var(--color-teal-light);
+  border: 1px dashed var(--color-teal);
+  border-radius: 12px;
+  color: var(--color-teal);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.uploadBtn:hover:not(:disabled) {
+  background: var(--color-teal);
+  color: white;
+  border-style: solid;
+}
+
+.uploadBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

@@ -75,6 +75,8 @@ export async function generateChatResponse(
     "You are a warm, encouraging medical study assistant. Answer ONLY from the study material provided. " +
     "If the answer isn't in the material, say so kindly. Cite which part of the notes your answer comes from. " +
     "Keep a supportive, friendly tone. Direct your answers specifically to 'Baby', addressing her with love, care, and encouragement (e.g. 'You've got this, future doctor!', 'Baby, based on your notes...'). " +
+    "To help Baby learn visually, when explaining complex pathways, feedbacks, or anatomical connections mentioned in the notes, you are highly encouraged to draw beautiful, modern, inline SVG vector diagrams directly in your response. " +
+    "Design these SVGs using clean vector graphics: use soft, professional colors (like teal, gold, blush, soft green, grey), rounded rects for boxes, circles for cells, clear arrows (<path marker-end='url(#arrow)' ...>), and properly positioned, bold text labels (<text>). Make sure they are responsive (viewBox='0 0 width height', width='100%', height='auto') so they scale nicely. " +
     "If the user uploaded an image or PDF, analyze it strictly relative to the study notes or explain its concepts grounding it in their study materials. " +
     "Remember: You are the AI study companion, NOT Mega himself. You were built by Mega for Baby. Do not sign off as Mega or pretend to be Mega.";
 
@@ -108,6 +110,8 @@ export async function generateResearchResponse(
   const systemInstruction = 
     "You are a warm, supportive, and brilliant medical research assistant. Answer Baby's questions with the latest medical knowledge, structured clearly for a 400-level medical student. " +
     "Cite medical terms where necessary and use clear bullet points or bold summaries. Keep an encouraging, loving tone, and address her as Baby or future doctor. " +
+    "To help Baby learn visually, when explaining complex structures, feedback loops, anatomical diagrams, physiological pathways (like the RAAS system, cardiac cycle, or action potential), clinical diagnostic trees, or pharmacological mechanisms, you are highly encouraged to draw beautiful, modern, inline SVG vector diagrams directly in your response. " +
+    "Design these SVGs using clean vector graphics: use soft, professional colors (like teal, gold, blush, soft green, grey), rounded rects for boxes, circles for cells or organs, clear arrows (<path marker-end='url(#arrow)' ...>), and properly positioned, bold text labels (<text>). Make sure they are responsive (viewBox='0 0 width height', width='100%', height='auto') so they scale nicely. Always label structures clearly. " +
     "Note: You are answering general queries, so you do not need to ground your answers in any study notes unless she references them. " +
     "If she uploaded an image or PDF, analyze and explain it thoroughly using general medical science. " +
     "Remember: You are the AI study companion, NOT Mega himself. You were built by Mega for Baby. Do not sign off as Mega or pretend to be Mega.";
@@ -187,7 +191,11 @@ Please structure the output as follows:
 Input content to explain:
 ${input}`;
 
-  const systemInstruction = "You are a warm, loving medical tutor. Explain things clearly, making Baby feel capable and smart. End with this exact footer (and nothing else after it): 'See? You understood that. You're going to ace this. 💙'";
+  const systemInstruction = 
+    "You are a warm, loving medical tutor. Explain things clearly, making Baby feel capable and smart. " +
+    "To help Baby learn visually, when explaining complex pathways, anatomical structures, or physiological feedback systems, you are highly encouraged to draw beautiful, modern, inline SVG vector diagrams directly in your explanation text. " +
+    "Design these SVGs using clean vector graphics: use soft, professional colors, rounded corners, clear arrows, and properly positioned, bold text labels. Make sure they use responsive viewBox values. " +
+    "End with this exact footer (and nothing else after it): 'See? You understood that. You're going to ace this. 💙'";
 
   return callGemini(prompt, {
     temperature: 0.6,
@@ -298,4 +306,66 @@ ${notes}`;
     console.error("Failed to parse quiz JSON", responseText, err);
     throw new Error("Could not parse quiz questions. Please try again.");
   }
+}
+
+// FEATURE: Mnemonics & Memory Aids Generator
+export async function generateMnemonics(
+  topics: string,
+  type: "mnemonic" | "story" | "association"
+): Promise<string> {
+  const typeInstruction = 
+    type === "mnemonic" ? "memorable acronyms, spelling mnemonics, or catchphrases. For each acronym, explain what each letter stands for clearly." :
+    type === "story" ? "a vivid, slightly humorous, and highly engaging clinical story or 'Memory Palace' scene where each concept/item represents a specific character, object, or event in the scene." :
+    "strong, vivid associations, medical puns, or visual memory hooks for each term to make them impossible to forget.";
+
+  const prompt = `Please create memory aids for the following medical concepts/terms:
+${topics}
+
+Format:
+Create memory aids using: ${typeInstruction}
+
+Structure the response to be highly visual, structured, and easy to read. Include a warm, loving message to Baby at the end telling her she's going to remember all of this and ace her exam (e.g. 'You've got this, future doctor! 🩺❤️'). Do not sign off as Mega.`;
+
+  const systemInstruction = "You are a warm, supportive medical study coach. Create highly effective mnemonics and memory palaces to help Baby learn faster and never forget.";
+
+  return callGemini(prompt, {
+    temperature: 0.7,
+    systemInstruction
+  });
+}
+
+
+// FEATURE: Parse document (PDF, Word, PPTX, etc.)
+export async function parseDocument(file: File): Promise<string> {
+  const base64Data = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result as string;
+      if (result) {
+        resolve(result.split(',')[1]);
+      } else {
+        reject(new Error('Failed to read file'));
+      }
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+
+  const response = await fetch('/api/parse-document', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      base64Data,
+      filename: file.name,
+      mimeType: file.type,
+    }),
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || `Parsing error ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.text;
 }

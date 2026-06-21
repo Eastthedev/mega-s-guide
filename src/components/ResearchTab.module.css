@@ -611,3 +611,150 @@
     height: 2.8rem;
   }
 }
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--color-teal-light);
+  border-top-color: var(--color-teal);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* SVG Viewer Component Styles */
+.svgViewerContainer {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  margin: 1rem 0;
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  width: 100%;
+  max-width: 100%;
+}
+
+.svgViewerHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: rgba(10, 126, 164, 0.05);
+  border-bottom: 1px solid var(--border-color);
+}
+
+:global(.dark) .svgViewerHeader {
+  background: rgba(10, 126, 164, 0.1);
+}
+
+.svgViewerTitle {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-teal);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.svgViewerActions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.svgActionBtn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0.4rem;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.svgActionBtn:hover {
+  background: var(--color-teal-light);
+  color: var(--color-teal);
+}
+
+:global(.dark) .svgActionBtn:hover {
+  background: rgba(10, 126, 164, 0.2);
+}
+
+.svgViewerBody {
+  position: relative;
+  width: 100%;
+  height: 380px;
+  background: #fbfbfc;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+}
+
+:global(.dark) .svgViewerBody {
+  background: #111622;
+}
+
+.svgWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 90%;
+  height: 90%;
+}
+
+.svgWrapper svg {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+/* Fullscreen Mode override */
+.svgFullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999;
+  border-radius: 0;
+  margin: 0;
+}
+
+.svgFullscreen .svgViewerBody {
+  height: calc(100vh - 49px);
+}
+
+.multiPartContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.svgWrapper img {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.userBubble :global(.markdown-content),
+.userBubble :global(.markdown-content) p {
+  color: white !important;
+}

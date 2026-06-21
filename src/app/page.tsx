@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Stethoscope, Heart, Activity, FileText, Brain, 
-  Sparkles, BookOpen, HelpCircle, ArrowRight, X, Flame, Trophy
+  Sparkles, BookOpen, HelpCircle, ArrowRight, X, Flame, Trophy,
+  Sun, Moon, ChevronRight, GraduationCap, ArrowUpRight, Search
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import styles from './page.module.css';
@@ -20,6 +21,7 @@ import QuizMode from '../components/QuizMode';
 import LoveButton from '../components/LoveButton';
 import ResearchTab from '../components/ResearchTab';
 import AuthScreen from '../components/AuthScreen';
+import MnemonicsTab from '../components/MnemonicsTab';
 import { getUserStats, syncUserStats, supabase } from '../utils/supabase';
 
 interface Toast {
@@ -56,6 +58,65 @@ export default function Home() {
   const [typewriterText, setTypewriterText] = useState('');
   const [visibleCards, setVisibleCards] = useState<Record<number, boolean>>({});
   const [scrollPercent, setScrollPercent] = useState(0);
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [selectedDemoAnswer, setSelectedDemoAnswer] = useState<string | null>(null);
+  const [motivationQuote, setMotivationQuote] = useState("Study like you're going to save a life... because you are. ❤️");
+
+  // Sync theme on mount
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('megas_guide_theme');
+    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const initialTheme = savedTheme === 'dark' || (!savedTheme && systemPrefersDark) ? 'dark' : 'light';
+    setTheme(initialTheme);
+    if (initialTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    const nextTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(nextTheme);
+    localStorage.setItem('megas_guide_theme', nextTheme);
+    if (nextTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    addToast(`Switched to ${nextTheme === 'light' ? 'Light' : 'Dark'} Mode 💡`);
+  };
+
+  const handleDemoAnswer = (option: string) => {
+    setSelectedDemoAnswer(option);
+    if (option === 'B') {
+      confetti({
+        particleCount: 50,
+        spread: 60,
+        origin: { y: 0.7 }
+      });
+    }
+  };
+
+  const handleRotateQuote = () => {
+    const allQuotes = [
+      "Every hour you study now is a life you'll save later. 🩺",
+      "Study like you're going to save a life... because you are. ❤️",
+      "Every page you read is a patient you'll save. I'm so proud of you, Baby. 🥰",
+      "Consistency beats intensity. Keep going, future doctor! 💪",
+      "Are you Epinephrine? Because you make my heart race! ⚡💓",
+      "Baby, you are going to be the most compassionate, brilliant doctor. Keep going!",
+      "You've got this, future doctor! 🩺❤️",
+      "In a world of arrhythmia, you are my sinus rhythm. 💓",
+      "You are the primary caregiver of my heart. 🩺"
+    ];
+    let nextQuote = motivationQuote;
+    while (nextQuote === motivationQuote) {
+      nextQuote = allQuotes[Math.floor(Math.random() * allQuotes.length)];
+    }
+    setMotivationQuote(nextQuote);
+    handleConfettiStrip();
+  };
 
   const typewriterPhrase = "Because you're going to be an incredible doctor. Let's get there together. 🩺";
 
@@ -254,6 +315,8 @@ export default function Home() {
         return <NoteSummary onAddToast={addToast} onJumpToTab={handleJumpToTab} />;
       case 'explain':
         return <DetailedExplanation onAddToast={addToast} />;
+      case 'mnemonics':
+        return <MnemonicsTab onAddToast={addToast} />;
       case 'flashcards':
         return <Flashcards onAddToast={addToast} initialNotes={jumpNotes} />;
       case 'quiz':
@@ -285,56 +348,163 @@ export default function Home() {
       {view === 'landing' ? (
         /* ================= LANDING PAGE VIEW ================= */
         <div className={styles.landingPage}>
-          {/* Hero Section */}
-          <section className={styles.heroSection}>
-            <div className={styles.animatedHeroBg} />
-            
-            {/* Floating SVGs */}
-            <div className="floating-icon" style={{ top: '15%', left: '10%', animationDelay: '0s' }}>
-              <Stethoscope size={40} className="text-teal" style={{ opacity: 0.4 }} />
-            </div>
-            <div className="floating-icon" style={{ top: '30%', right: '12%', animationDelay: '2s' }}>
-              <Heart size={36} className="text-blush pulsing-heart" style={{ opacity: 0.5 }} />
-            </div>
-            <div className="floating-icon" style={{ bottom: '25%', left: '15%', animationDelay: '4s' }}>
-              <Activity size={32} className="text-gold" style={{ opacity: 0.4 }} />
-            </div>
-            <div className="floating-icon" style={{ bottom: '15%', right: '20%', animationDelay: '1s' }}>
-              <Brain size={38} className="text-teal" style={{ opacity: 0.3 }} />
-            </div>
-
-            <div className={styles.heroContent}>
-              <div className={styles.pillLabel}>
-                <span>Made with love, just for you</span>
-                <Heart size={12} fill="white" className="pulsing-heart" />
+          {/* Transparent Glassmorphic Navbar */}
+          <header className={styles.navbar}>
+            <div className={styles.navContainer}>
+              <div className={styles.navLogo} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+                <div className={styles.navLogoIcon}>
+                  <Brain size={20} className={styles.brainIcon} />
+                  <Heart size={10} fill="currentColor" className={styles.heartLogoIcon} />
+                </div>
+                <span className={styles.navLogoText}>Mega's Guide</span>
               </div>
 
-              <div className={styles.heroHeadingRow}>
-                <h1 className={`${styles.heroTitle} fade-in-up`}>Mega's Guide</h1>
-              </div>
+              <nav className={styles.navLinks}>
+                <a href="#why-section" className={styles.navLinkItem}>Features</a>
+                <a href="#how-it-works-section" className={styles.navLinkItem}>How It Works</a>
+                <a href="#motivation-section" className={styles.navLinkItem}>Motivation</a>
+              </nav>
 
-              <p className={styles.heroSubtitle}>
-                Your personal AI study companion for medical school.
-              </p>
-
-              <div className={styles.typewriterText}>
-                {typewriterText}
-              </div>
-
-              <div className={styles.ctaGroup}>
+              <div className={styles.navActions}>
+                <button 
+                  className={styles.themeToggleBtn} 
+                  onClick={toggleTheme}
+                  aria-label="Toggle Theme"
+                >
+                  {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+                </button>
                 <button 
                   className="btn btn-primary" 
                   onClick={() => setView('study')}
+                  style={{ padding: '0.5rem 1.25rem', fontSize: '0.875rem' }}
                 >
-                  Start Studying →
+                  {user ? 'Dashboard' : 'Start Studying'} <ArrowRight size={14} />
                 </button>
-                <a 
-                  className="btn btn-ghost" 
-                  href="#why-section"
-                  style={{ color: 'white', borderColor: 'rgba(255,255,255,0.4)' }}
-                >
-                  See How It Works
-                </a>
+              </div>
+            </div>
+          </header>
+
+          {/* Split-screen Hero Section */}
+          <section className={styles.heroSection}>
+            {/* Glowing Accent Blobs */}
+            <div className={styles.glowBlob1} />
+            <div className={styles.glowBlob2} />
+            <div className={styles.gridOverlay} />
+
+            <div className={styles.heroContainer}>
+              <div className={styles.heroLeft}>
+                <div className={styles.pillLabel}>
+                  <Heart size={12} fill="currentColor" className="pulsing-heart" />
+                  <span>Made for the future Dr. Baby</span>
+                </div>
+                
+                <h1 className={styles.heroTitle}>
+                  Study Smarter.<br />
+                  <span>Save More Lives.</span>
+                </h1>
+
+                <p className={styles.heroSubtitle}>
+                  Every page you read is a patient you'll save later. Your personal AI-powered study partner for medical school.
+                </p>
+
+                <div className={styles.typewriterText}>
+                  {typewriterText}
+                </div>
+
+                <div className={styles.ctaGroup}>
+                  <button 
+                    className="btn btn-primary" 
+                    onClick={() => setView('study')}
+                  >
+                    Start Studying Now <ArrowRight size={16} />
+                  </button>
+                  <a 
+                    className="btn btn-ghost" 
+                    href="#why-section"
+                  >
+                    Explore Features
+                  </a>
+                </div>
+              </div>
+
+              {/* Interactive Dashboard Quiz Mockup on the Right */}
+              <div className={styles.heroRight}>
+                <div className={styles.interactiveMockup}>
+                  <div className={styles.mockupHeader}>
+                    <div className={styles.mockupDots}>
+                      <span className={styles.mockupDot} style={{ background: '#FF5F56' }} />
+                      <span className={styles.mockupDot} style={{ background: '#FFBD2E' }} />
+                      <span className={styles.mockupDot} style={{ background: '#27C93F' }} />
+                    </div>
+                    <div className={styles.mockupTitle}>
+                      <Stethoscope size={12} style={{ color: 'var(--color-teal)' }} />
+                      <span>Interactive Demo: Clinical Case Quiz</span>
+                    </div>
+                  </div>
+
+                  <div className={styles.mockupBody}>
+                    <div className={styles.clinicalCase}>
+                      <span className={styles.caseBadge}>Vignette</span>
+                      <p>
+                        A 24-year-old medical student (clinical name: <strong>Baby</strong>) presents to the study lounge with acute fatigue, dilated pupils, and mild caffeine withdrawal secondary to 400-level exam prep. Heart rate is 98 bpm (sinus rhythm).
+                      </p>
+                    </div>
+
+                    <h4 className={styles.questionText}>
+                      What is the most appropriate first-line intervention to ensure success?
+                    </h4>
+
+                    <div className={styles.quizOptions}>
+                      {[
+                        { key: 'A', text: '100% high-flow oxygen and cardiology referral' },
+                        { key: 'B', text: 'Coffee, a deep breath, and remembering they are going to make an incredible doctor 🩺☕❤️' },
+                        { key: 'C', text: '24-hour continuous library confinement' },
+                        { key: 'D', text: 'Immediate 200J synchronized DC cardioversion' }
+                      ].map((opt) => {
+                        let btnClass = styles.quizOption;
+                        if (selectedDemoAnswer === opt.key) {
+                          btnClass += ` ${opt.key === 'B' ? styles.quizOptionCorrect : styles.quizOptionIncorrect}`;
+                        }
+
+                        return (
+                          <button
+                            key={opt.key}
+                            className={btnClass}
+                            disabled={selectedDemoAnswer !== null}
+                            onClick={() => handleDemoAnswer(opt.key)}
+                          >
+                            <span className={styles.optionKey}>{opt.key}</span>
+                            <span className={styles.optionText}>{opt.text}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {selectedDemoAnswer && (
+                      <div className={`${styles.rationaleBox} fade-in-up`}>
+                        {selectedDemoAnswer === 'B' ? (
+                          <>
+                            <div className={styles.rationaleHeader} style={{ color: '#27C93F' }}>
+                              <Sparkles size={16} /> Correct Decision!
+                            </div>
+                            <p>
+                              Academic burnout and exam stress respond best to loving encouragement, pacing yourself, and warm beverages. You're doing amazing, future doctor! Keep studying, you are going to save lives. 🥰
+                            </p>
+                          </>
+                        ) : (
+                          <>
+                            <div className={styles.rationaleHeader} style={{ color: '#FF5F56' }}>
+                              <HelpCircle size={16} /> Incorrect Option
+                            </div>
+                            <p>
+                              While cardioversion or referral sounds exciting, this student is just stressed. Try **Option B** for a more therapeutic and loving approach!
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </section>
@@ -342,65 +512,71 @@ export default function Home() {
           {/* "Why Mega's Guide?" Feature Section */}
           <section id="why-section" className={styles.whySection}>
             <div className={styles.whyHeader}>
-              <h2 className={styles.sectionTitle}>Why Mega's Guide?</h2>
+              <div className={styles.sectionBadge}>
+                <Sparkles size={14} style={{ color: 'var(--color-teal)' }} />
+                <span>Tailored Study Modes</span>
+              </div>
+              <h2 className={styles.sectionTitle}>Built for High-Yield Study</h2>
               <p className={styles.sectionDesc}>
-                Everything you need to master your 400-level lectures, summarized and structured by AI.
+                Everything you need to master your 400-level lectures, summarized and structured by AI to save you time.
               </p>
             </div>
 
             <div className={styles.whyGrid}>
-              <div 
-                className={`${styles.featureCard} ${visibleCards[0] ? styles.featureCardVisible : ''}`}
-                data-index="0"
-              >
-                <div className={styles.featureIcon}><Brain size={24} /></div>
-                <h3 className={styles.featureTitle}>AI Chat</h3>
-                <p className={styles.featureText}>
-                  Ask anything. Get answers grounded strictly inside your own pasted notes.
-                </p>
-              </div>
-
-              <div 
-                className={`${styles.featureCard} ${visibleCards[1] ? styles.featureCardVisible : ''}`}
-                data-index="1"
-              >
-                <div className={styles.featureIcon}><FileText size={24} /></div>
-                <h3 className={styles.featureTitle}>Note Summary</h3>
-                <p className={styles.featureText}>
-                  Paste lecture slides and get beautiful concise bullets or organized guides instantly.
-                </p>
-              </div>
-
-              <div 
-                className={`${styles.featureCard} ${visibleCards[2] ? styles.featureCardVisible : ''}`}
-                data-index="2"
-              >
-                <div className={styles.featureIcon}><BookOpen size={24} /></div>
-                <h3 className={styles.featureTitle}>Flashcards</h3>
-                <p className={styles.featureText}>
-                  Auto-generate card decks from topics. Review with interactive 3D flips.
-                </p>
-              </div>
-
-              <div 
-                className={`${styles.featureCard} ${visibleCards[3] ? styles.featureCardVisible : ''}`}
-                data-index="3"
-              >
-                <div className={styles.featureIcon}><HelpCircle size={24} /></div>
-                <h3 className={styles.featureTitle}>Quiz Mode</h3>
-                <p className={styles.featureText}>
-                  Mock exams custom-built from notes. Get red/green validation and clinical rationales.
-                </p>
-              </div>
+              {[
+                {
+                  icon: <Brain size={24} />,
+                  title: 'AI Chat',
+                  text: 'Ask questions and get answers grounded strictly inside your own pasted notes. Perfect for tough slide materials.'
+                },
+                {
+                  icon: <FileText size={24} />,
+                  title: 'Note Summarizer',
+                  text: 'Convert cluttered lecture slides or medical texts into beautifully structured, outline-based summaries instantly.'
+                },
+                {
+                  icon: <BookOpen size={24} />,
+                  title: '3D Flashcards',
+                  text: 'Generate smart active-recall card decks directly from your notes. Study with responsive 3D card flips.'
+                },
+                {
+                  icon: <HelpCircle size={24} />,
+                  title: 'Interactive Quizzes',
+                  text: 'Practice with custom-generated multiple choice questions. Receive instant clinical rationale and feedback.'
+                },
+                {
+                  icon: <Sparkles size={24} />,
+                  title: 'Clinical Breakdown',
+                  text: 'Deep-dive into pathophysiology. Get step-by-step clinical explanations and mechanism analysis for complex diseases.'
+                },
+                {
+                  icon: <Search size={24} />,
+                  title: 'Literature Search',
+                  text: 'Research and cross-reference clinical topics with scientific papers, medical guidelines, and reference summaries.'
+                }
+              ].map((feature, idx) => (
+                <div 
+                  key={idx}
+                  className={`${styles.featureCard} ${styles.featureCardVisible}`}
+                >
+                  <div className={styles.featureIcon}>{feature.icon}</div>
+                  <h3 className={styles.featureTitle}>{feature.title}</h3>
+                  <p className={styles.featureText}>{feature.text}</p>
+                </div>
+              ))}
             </div>
           </section>
 
           {/* "How It Works" Stepper Section */}
           <section id="how-it-works-section" className={styles.howSection}>
             <div className={styles.howContent}>
-              <h2 className={styles.sectionTitle}>How It Works</h2>
+              <div className={styles.sectionBadge} style={{ margin: '0 auto 1rem auto' }}>
+                <GraduationCap size={14} style={{ color: 'var(--color-teal)' }} />
+                <span>Simple Workflow</span>
+              </div>
+              <h2 className={styles.sectionTitle}>Three Steps to Mastery</h2>
               <p className={styles.sectionDesc}>
-                Three steps to study smarter, retain longer, and save future patients.
+                A clean, efficient cycle designed to help you study smarter, retain longer, and build your confidence.
               </p>
 
               <div className={styles.stepsContainer}>
@@ -413,24 +589,30 @@ export default function Home() {
                 </div>
 
                 <div className={styles.stepNode}>
-                  <div className={`${styles.stepBadge} ${scrollPercent > 20 ? styles.stepBadgeActive : ''}`}>1</div>
-                  <h3 className={styles.stepTitle}>Input Notes</h3>
+                  <div className={`${styles.stepBadge} ${scrollPercent > 20 ? styles.stepBadgeActive : ''}`}>
+                    <FileText size={20} />
+                  </div>
+                  <h3 className={styles.stepTitle}>1. Input Notes</h3>
                   <p className={styles.stepDesc}>
                     Paste lecture summaries, slide bullet points, or medical syllabus sections.
                   </p>
                 </div>
 
                 <div className={styles.stepNode}>
-                  <div className={`${styles.stepBadge} ${scrollPercent > 50 ? styles.stepBadgeActive : ''}`}>2</div>
-                  <h3 className={styles.stepTitle}>Choose Study Mode</h3>
+                  <div className={`${styles.stepBadge} ${scrollPercent > 50 ? styles.stepBadgeActive : ''}`}>
+                    <Activity size={20} />
+                  </div>
+                  <h3 className={styles.stepTitle}>2. Choose Study Mode</h3>
                   <p className={styles.stepDesc}>
                     Select AI Chat answers, notes outlines, 3D flashcards, or interactive quizzes.
                   </p>
                 </div>
 
                 <div className={styles.stepNode}>
-                  <div className={`${styles.stepBadge} ${scrollPercent > 80 ? styles.stepBadgeActive : ''}`}>3</div>
-                  <h3 className={styles.stepTitle}>Study Smarter 💪</h3>
+                  <div className={`${styles.stepBadge} ${scrollPercent > 80 ? styles.stepBadgeActive : ''}`}>
+                    <Trophy size={20} />
+                  </div>
+                  <h3 className={styles.stepTitle}>3. Study Smarter 💪</h3>
                   <p className={styles.stepDesc}>
                     Ace clinical explanations, log streaks, and unlock trophies as you learn.
                   </p>
@@ -439,22 +621,30 @@ export default function Home() {
             </div>
           </section>
 
-          {/* Motivation Strip */}
-          <section className={styles.motivationStrip} onClick={handleConfettiStrip} style={{ cursor: 'pointer' }}>
-            <div className={styles.motivationBgHearts}>
-              <Heart size={40} className="floating-icon text-white" style={{ top: '20%', left: '10%' }} />
-              <Heart size={30} className="floating-icon text-white" style={{ bottom: '20%', right: '15%', animationDelay: '3s' }} />
+          {/* Motivation Section */}
+          <section id="motivation-section" className={styles.motivationSection}>
+            <div className={styles.motivationCard} onClick={handleRotateQuote} style={{ cursor: 'pointer' }}>
+              <div className={styles.motivationCardGlow} />
+              <div className={styles.quoteMark}>“</div>
+              <p className={styles.motivationText}>
+                {motivationQuote}
+              </p>
+              <div className={styles.quoteAuthor}>~ Mega</div>
+              <div className={styles.clickHint}>
+                <Sparkles size={12} className={styles.sparkleIcon} />
+                <span>Click for another encouraging note & confetti!</span>
+              </div>
             </div>
-            <p className={styles.motivationText}>
-              "400 level. Final exams. You've already survived the hardest parts. This is just the beginning of your legacy."
-            </p>
           </section>
 
           {/* Footer */}
           <footer className={styles.footer}>
             <div className={styles.footerContent}>
               <div className={styles.footerLeft}>
-                <h3 className={styles.footerHeading}>Mega's Guide</h3>
+                <div className={styles.footerLogo}>
+                  <Brain size={18} style={{ color: 'var(--color-teal)' }} />
+                  <span className={styles.footerLogoText}>Mega's Guide</span>
+                </div>
                 <p className={styles.footerTagline}>
                   Built with love for the future Dr. Baby 🩺❤️
                 </p>
@@ -462,9 +652,13 @@ export default function Home() {
 
               <div className={styles.footerLinks}>
                 <button className={styles.footerLink} onClick={() => setView('study')}>Study Area</button>
-                <a className={styles.footerLink} href="#why-section">How It Works</a>
-                <button className={styles.footerLink} onClick={() => window.scrollTo(0,0)}>Back to Top</button>
+                <a className={styles.footerLink} href="#why-section">Features</a>
+                <a className={styles.footerLink} href="#how-it-works-section">Workflow</a>
+                <button className={styles.footerLink} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>Back to Top</button>
               </div>
+            </div>
+            <div className={styles.footerBottom}>
+              <p>© {new Date().getFullYear()} Mega's Guide. Keep shining!</p>
             </div>
           </footer>
         </div>

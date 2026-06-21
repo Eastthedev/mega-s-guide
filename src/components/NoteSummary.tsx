@@ -3,9 +3,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   FileText, Sparkles, BookOpen, HelpCircle, Copy, 
-  Save, Plus, Trash2, ArrowRight, FolderHeart, Check, X as CloseIcon
+  Save, Plus, Trash2, ArrowRight, FolderHeart, Check, X as CloseIcon,
+  Paperclip
 } from 'lucide-react';
-import { generateSummary } from '../utils/gemini';
+import { generateSummary, parseDocument } from '../utils/gemini';
 import { getNoteSummaries, saveNoteSummary, deleteNoteSummary, syncCurrentStats, SavedSummary } from '../utils/supabase';
 import { marked } from 'marked';
 import styles from './NoteSummary.module.css';
@@ -36,8 +37,32 @@ export default function NoteSummary({ onAddToast, onJumpToTab }: NoteSummaryProp
 
   // Sidebar saved sessions
   const [savedSummaries, setSavedSummaries] = useState<SavedSummary[]>([]);
+  const [isParsing, setIsParsing] = useState(false);
 
   const mainRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsParsing(true);
+    const originalNotes = notes;
+    setNotes(`[Reading file: "${file.name}"... please wait 🩺🧠]`);
+
+    try {
+      const parsedText = await parseDocument(file);
+      setNotes(parsedText);
+      onAddToast(`Loaded document: "${file.name}"! 📂`);
+    } catch (err: any) {
+      console.error(err);
+      setNotes(originalNotes);
+      onAddToast(`Error reading document: ${err.message || 'Parsing failed.'} ❌`);
+    } finally {
+      setIsParsing(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   // Load saved summaries + pre-fill from study context
   const loadSavedSummaries = async () => {
@@ -264,11 +289,30 @@ export default function NoteSummary({ onAddToast, onJumpToTab }: NoteSummaryProp
             )}
           </div>
 
+          <div className={styles.fileUploadRow}>
+            <button 
+              className={styles.uploadBtn}
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isLoading || isParsing}
+            >
+              <Paperclip size={14} />
+              <span>{isParsing ? 'Reading file...' : 'Upload Document (.pdf, .docx, .pptx, .txt)'}</span>
+            </button>
+            <input 
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              accept=".pdf,.docx,.pptx,.txt,.md"
+              style={{ display: 'none' }}
+            />
+          </div>
+
           <textarea
             className={styles.textarea}
             placeholder="Paste your lecture notes, textbook excerpt, or study material here..."
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
+            disabled={isLoading || isParsing}
           />
 
           <div className={styles.selectorRow}>

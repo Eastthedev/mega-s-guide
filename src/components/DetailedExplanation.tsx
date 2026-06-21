@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Sparkles, Copy, BookOpen, FileText, Heart, Plus, Trash2, Check, Brain, X as CloseIcon } from 'lucide-react';
-import { generateExplanation } from '../utils/gemini';
+import { Sparkles, Copy, BookOpen, FileText, Heart, Plus, Trash2, Check, Brain, X as CloseIcon, Paperclip, ZoomIn, ZoomOut, RotateCcw, Download, Maximize2, Minimize2 } from 'lucide-react';
+import { generateExplanation, parseDocument } from '../utils/gemini';
 import { getExplanationHistory, saveExplanation, deleteExplanation, ExplanationItem } from '../utils/supabase';
 import { marked } from 'marked';
 import styles from './DetailedExplanation.module.css';
@@ -14,6 +14,137 @@ interface DetailedExplanationProps {
 type Mode = 'topic' | 'passage';
 type Depth = 'simple' | 'standard' | 'deep';
 
+interface InteractiveViewerProps {
+  type: 'svg' | 'image';
+  content: string;
+  title?: string;
+}
+
+function InteractiveViewer({ type, content, title = "Visual Guide" }: InteractiveViewerProps) {
+  const [scale, setScale] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const handleZoomIn = () => {
+    setScale(prev => Math.min(prev + 0.25, 4));
+  };
+
+  const handleZoomOut = () => {
+    setScale(prev => Math.max(prev - 0.25, 0.5));
+  };
+
+  const handleReset = () => {
+    setScale(1);
+    setPosition({ x: 0, y: 0 });
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+    setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    setPosition({
+      x: e.clientX - dragStart.x,
+      y: e.clientY - dragStart.y
+    });
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const toggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen);
+  };
+
+  const handleDownload = () => {
+    try {
+      if (type === 'svg') {
+        const blob = new Blob([content], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        const safeTitle = title.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+        link.download = `medical_diagram_${safeTitle || 'visual'}.svg`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      } else {
+        const link = document.createElement('a');
+        link.href = content;
+        const safeTitle = title.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+        link.download = `medical_image_${safeTitle || 'visual'}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch (err) {
+      console.error("Failed to download media:", err);
+    }
+  };
+
+  return (
+    <div 
+      className={`${styles.svgViewerContainer} ${isFullscreen ? styles.svgFullscreen : ''}`}
+      ref={containerRef}
+    >
+      <div className={styles.svgViewerHeader}>
+        <span className={styles.svgViewerTitle}>
+          <Brain size={14} className="text-gold" />
+          {title}
+        </span>
+        <div className={styles.svgViewerActions}>
+          <button onClick={handleZoomIn} title="Zoom In" className={styles.svgActionBtn}>
+            <ZoomIn size={16} />
+          </button>
+          <button onClick={handleZoomOut} title="Zoom Out" className={styles.svgActionBtn}>
+            <ZoomOut size={16} />
+          </button>
+          <button onClick={handleReset} title="Reset View" className={styles.svgActionBtn}>
+            <RotateCcw size={16} />
+          </button>
+          <button onClick={handleDownload} title="Download File" className={styles.svgActionBtn}>
+            <Download size={16} />
+          </button>
+          <button onClick={toggleFullscreen} title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"} className={styles.svgActionBtn}>
+            {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+          </button>
+        </div>
+      </div>
+      <div 
+        className={styles.svgViewerBody}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+      >
+        <div 
+          className={styles.svgWrapper}
+          style={{
+            transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+            transformOrigin: 'center center',
+            transition: isDragging ? 'none' : 'transform 0.1s ease-out'
+          }}
+        >
+          {type === 'svg' ? (
+            <div dangerouslySetInnerHTML={{ __html: content }} style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }} />
+          ) : (
+            <img src={content} alt={title} style={{ width: '100%', height: '100%', objectFit: 'contain' }} draggable={false} />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function DetailedExplanation({ onAddToast }: DetailedExplanationProps) {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [mode, setMode] = useState<Mode>('topic');
@@ -23,10 +154,34 @@ export default function DetailedExplanation({ onAddToast }: DetailedExplanationP
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeTitle, setActiveTitle] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isParsing, setIsParsing] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const [history, setHistory] = useState<ExplanationItem[]>([]);
   const mainRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsParsing(true);
+    const originalInput = input;
+    setInput(`[Reading file: "${file.name}"... please wait 🩺🧠]`);
+
+    try {
+      const parsedText = await parseDocument(file);
+      setInput(parsedText);
+      onAddToast(`Loaded document: "${file.name}"! 📂`);
+    } catch (err: any) {
+      console.error(err);
+      setInput(originalInput);
+      onAddToast(`Error reading document: ${err.message || 'Parsing failed.'} ❌`);
+    } finally {
+      setIsParsing(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   const loadHistory = async () => {
     const items = await getExplanationHistory();
@@ -128,8 +283,59 @@ export default function DetailedExplanation({ onAddToast }: DetailedExplanationP
 
   const renderExplanationHtml = () => {
     try {
-      const rawHtml = marked.parse(explanation) as string;
-      return <div className="markdown-content" dangerouslySetInnerHTML={{ __html: rawHtml }} />;
+      const mediaRegex = /((?:```(?:xml|svg|html)?\s*)?<svg[\s\S]*?<\/svg>(?:\s*```)?|!\[.*?\]\(.*?\)|<img\s+[^>]*src=["'].*?["'][^>]*>)/gi;
+      const parts = explanation.split(mediaRegex);
+
+      if (parts.length <= 1) {
+        const rawHtml = marked.parse(explanation) as string;
+        return <div className="markdown-content" dangerouslySetInnerHTML={{ __html: rawHtml }} />;
+      }
+
+      return (
+        <div className={styles.multiPartContainer}>
+          {parts.map((part, i) => {
+            const trimmed = part.trim();
+            if (!trimmed) return null;
+
+            const isSvg = (trimmed.startsWith('<svg') && trimmed.endsWith('</svg>')) || trimmed.includes('<svg');
+            const isMarkdownImg = trimmed.startsWith('![');
+            const isHtmlImg = trimmed.startsWith('<img') || trimmed.startsWith('<IMG');
+
+            if (isSvg) {
+              const cleanSvg = trimmed.replace(/^```(xml|html|svg)?\s*/i, '').replace(/```$/i, '').trim();
+              const titleMatch = cleanSvg.match(/<title>([\s\S]*?)<\/title>/i);
+              const title = titleMatch ? titleMatch[1] : "Medical Diagram";
+              return <InteractiveViewer key={i} type="svg" content={cleanSvg} title={title} />;
+            } else if (isMarkdownImg) {
+              const match = trimmed.match(/!\[(.*?)\]\((.*?)\)/);
+              if (match) {
+                const altText = match[1] || "Medical Image";
+                const url = match[2];
+                return <InteractiveViewer key={i} type="image" content={url} title={altText} />;
+              }
+              return null;
+            } else if (isHtmlImg) {
+              const srcMatch = trimmed.match(/src=["']([^"']+)["']/i);
+              const altMatch = trimmed.match(/alt=["']([^"']+)["']/i) || trimmed.match(/title=["']([^"']+)["']/i);
+              if (srcMatch) {
+                const src = srcMatch[1];
+                const altText = altMatch ? altMatch[1] : "Medical Image";
+                return <InteractiveViewer key={i} type="image" content={src} title={altText} />;
+              }
+              return null;
+            } else {
+              const rawHtml = marked.parse(part) as string;
+              return (
+                <div 
+                  key={i} 
+                  className="markdown-content" 
+                  dangerouslySetInnerHTML={{ __html: rawHtml }} 
+                />
+              );
+            }
+          })}
+        </div>
+      );
     } catch {
       return <p>{explanation}</p>;
     }
@@ -255,12 +461,32 @@ export default function DetailedExplanation({ onAddToast }: DetailedExplanationP
                 onKeyDown={(e) => { if (e.key === 'Enter') handleExplain(); }}
               />
             ) : (
-              <textarea
-                className={styles.textareaInput}
-                placeholder="Paste slide notes or a confusing paragraph here..."
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-              />
+              <>
+                <div className={styles.fileUploadRow}>
+                  <button 
+                    className={styles.uploadBtn}
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isLoading || isParsing}
+                  >
+                    <Paperclip size={14} />
+                    <span>{isParsing ? 'Reading file...' : 'Upload Document (.pdf, .docx, .pptx, .txt)'}</span>
+                  </button>
+                  <input 
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileUpload}
+                    accept=".pdf,.docx,.pptx,.txt,.md"
+                    style={{ display: 'none' }}
+                  />
+                </div>
+                <textarea
+                  className={styles.textareaInput}
+                  placeholder="Paste slide notes or a confusing paragraph here..."
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  disabled={isLoading || isParsing}
+                />
+              </>
             )}
           </div>
 

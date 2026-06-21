@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Heart, MessageSquare, FileText, Sparkles, BookOpen, 
-  HelpCircle, Trophy, Flame, Play, Award, X, Search, Home 
+  HelpCircle, Trophy, Flame, Play, Award, X, Search, Home, Lightbulb
 } from 'lucide-react';
 import { getRandomSidebarQuote } from '../utils/quotes';
 import styles from './Sidebar.module.css';
@@ -53,6 +53,7 @@ export default function Sidebar({ activeTab, setActiveTab, isOpen, onClose }: Si
     { id: 'chat', label: 'AI Chat', icon: MessageSquare },
     { id: 'summarize', label: 'Summarize', icon: FileText },
     { id: 'explain', label: 'Explain', icon: Sparkles },
+    { id: 'mnemonics', label: 'Mnemonics', icon: Lightbulb },
     { id: 'flashcards', label: 'Flashcards', icon: BookOpen },
     { id: 'quiz', label: 'Quiz Mode', icon: HelpCircle },
     { id: 'research', label: 'Research', icon: Search }
