@@ -4,7 +4,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Send, Trash2, Search, Stethoscope, User, Paperclip, 
   X, FileText, Plus, MessageSquare, ZoomIn, ZoomOut,
-  RotateCcw, Download, Maximize2, Minimize2
+  RotateCcw, Download, Maximize2, Minimize2, ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import { generateResearchResponse, ChatMessage, AttachedFile, parseDocument } from '../utils/gemini';
 import { 
@@ -157,6 +158,7 @@ function InteractiveViewer({ type, content, title = "Visual Guide" }: Interactiv
 
 export default function ResearchTab({ onAddToast }: ResearchTabProps) {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isHistoryCollapsed, setIsHistoryCollapsed] = useState(false);
   const [sessions, setSessions] = useState<ResearchSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string>('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -451,42 +453,60 @@ export default function ResearchTab({ onAddToast }: ResearchTabProps) {
           </button>
         </div>
 
-        <button className={styles.newChatBtn} onClick={handleNewChat}>
-          <Plus size={16} />
-          <span>New Chat</span>
+        {/* Collapsible History Tab Header */}
+        <button 
+          className={styles.historyTabHeader} 
+          onClick={() => setIsHistoryCollapsed(!isHistoryCollapsed)}
+          aria-expanded={!isHistoryCollapsed}
+        >
+          <div className={styles.historyTabTitle}>
+            <MessageSquare size={16} className="text-teal" />
+            <span>Research History</span>
+          </div>
+          {isHistoryCollapsed ? <ChevronRight size={16} className="text-muted" /> : <ChevronDown size={16} className="text-muted" />}
         </button>
 
-        <div className={styles.sessionList}>
-          {sessions.length === 0 ? (
-            <div className={styles.noHistory}>
-              <p>No history yet</p>
-            </div>
-          ) : (
-            sessions.map((sess) => {
-              const isActive = sess.id === currentSessionId;
-              return (
-                <div
-                  key={sess.id}
-                  className={`${styles.sessionItem} ${isActive ? styles.activeSessionItem : ''}`}
-                  onClick={() => handleSelectSession(sess.id)}
-                >
-                  <div className={styles.sessionTitleWrapper}>
-                    <MessageSquare size={14} className={isActive ? 'text-teal' : 'text-muted'} />
-                    <span className={styles.sessionTitle}>{sess.title}</span>
-                  </div>
-                  <button
-                    className={styles.deleteSessionBtn}
-                    onClick={(e) => handleDeleteSession(sess.id, e)}
-                    title="Delete Research Thread"
-                    aria-label="Delete Session"
-                  >
-                    <Trash2 size={13} />
-                  </button>
+        {/* Collapsible history list subsection */}
+        {!isHistoryCollapsed && (
+          <div className={styles.historySubsection}>
+            <button className={styles.newChatBtn} onClick={handleNewChat}>
+              <Plus size={16} />
+              <span>New Chat</span>
+            </button>
+
+            <div className={styles.sessionList}>
+              {sessions.length === 0 ? (
+                <div className={styles.noHistory}>
+                  <p>No history yet</p>
                 </div>
-              );
-            })
-          )}
-        </div>
+              ) : (
+                sessions.map((sess) => {
+                  const isActive = sess.id === currentSessionId;
+                  return (
+                    <div
+                      key={sess.id}
+                      className={`${styles.sessionItem} ${isActive ? styles.activeSessionItem : ''}`}
+                      onClick={() => handleSelectSession(sess.id)}
+                    >
+                      <div className={styles.sessionTitleWrapper}>
+                        <MessageSquare size={14} className={isActive ? 'text-teal' : 'text-muted'} />
+                        <span className={styles.sessionTitle}>{sess.title}</span>
+                      </div>
+                      <button
+                        className={styles.deleteSessionBtn}
+                        onClick={(e) => handleDeleteSession(sess.id, e)}
+                        title="Delete Research Thread"
+                        aria-label="Delete Session"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Main Chat Area */}
