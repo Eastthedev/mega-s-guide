@@ -3,9 +3,10 @@
    ============================================ */
 .wrapper {
   display: flex;
-  height: calc(100vh - 120px);
+  height: 100%;
   gap: 1.5rem;
   width: 100%;
+  min-height: 0;
 }
 
 /* ============================================
@@ -265,7 +266,9 @@
 }
 
 .textInput:focus {
+  outline: none;
   border-color: var(--color-gold, #c9900c);
+  box-shadow: 0 0 0 4px rgba(245, 200, 66, 0.18);
 }
 
 .textareaInput {
@@ -284,7 +287,9 @@
 }
 
 .textareaInput:focus {
+  outline: none;
   border-color: var(--color-gold, #c9900c);
+  box-shadow: 0 0 0 4px rgba(245, 200, 66, 0.18);
 }
 
 .depthContainer {
@@ -446,7 +451,7 @@
 
 @media (max-width: 768px) {
   .wrapper {
-    height: calc(100vh - 130px);
+    height: 100%;
     position: relative;
     gap: 0;
   }

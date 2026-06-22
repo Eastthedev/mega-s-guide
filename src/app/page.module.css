@@ -25,7 +25,11 @@
 .dashboardBody {
   flex: 1;
   padding: 2rem;
-  overflow-y: auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  transition: padding 0.3s ease;
 }
 
 /* Toast styling */
@@ -871,6 +875,9 @@
 
 /* Responsiveness media queries */
 @media (max-width: 991px) {
+  .dashboardBody {
+    padding: 1.25rem;
+  }
   .heroContainer {
     flex-direction: column;
     gap: 3rem;
@@ -888,6 +895,9 @@
 }
 
 @media (max-width: 768px) {
+  .dashboardBody {
+    padding: 0.75rem;
+  }
   .heroTitle {
     font-size: 3rem;
   }

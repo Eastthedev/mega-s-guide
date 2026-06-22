@@ -2,6 +2,9 @@
   max-width: 1200px;
   margin: 0 auto;
   padding: 1.5rem;
+  height: 100%;
+  width: 100%;
+  overflow-y: auto;
   animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
@@ -96,20 +99,34 @@
 }
 
 .statCard {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-top-color: rgba(255, 255, 255, 0.8);
+  border-left-color: rgba(255, 255, 255, 0.8);
   border-radius: 20px;
   padding: 1.25rem;
   display: flex;
   align-items: center;
   gap: 1rem;
-  box-shadow: var(--shadow-card);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: var(--shadow-card), 0 4px 6px rgba(13, 27, 42, 0.02);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease, border-color 0.3s;
+}
+
+:global(.dark) .statCard {
+  background: rgba(19, 27, 38, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  border-top-color: rgba(255, 255, 255, 0.07);
+  border-left-color: rgba(255, 255, 255, 0.07);
 }
 
 .statCard:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-warm);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-warm), 0 10px 20px rgba(10, 126, 164, 0.04);
+  border-color: rgba(10, 126, 164, 0.25);
 }
 
 .statIconWrapper {
@@ -168,7 +185,13 @@
   align-items: flex-start;
   gap: 1.25rem;
   overflow: hidden;
-  border: 1.5px solid transparent;
+  border: 1px solid transparent;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s;
+}
+
+.motivationBanner:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-warm);
 }
 
 .motivationBanner::before {
@@ -201,6 +224,12 @@
   font-size: 2.5rem;
   flex-shrink: 0;
   line-height: 1;
+  animation: floatEmoji 3s ease-in-out infinite;
+}
+
+@keyframes floatEmoji {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-5px) rotate(5deg); }
 }
 
 .motivContent { flex: 1; }
@@ -416,11 +445,19 @@
 /* ── Mystery Box ── */
 .mysteryBox {
   position: relative;
-  background: linear-gradient(135deg, rgba(242, 167, 187, 0.08) 0%, rgba(10, 126, 164, 0.06) 100%);
-  border: 1.5px solid rgba(242, 167, 187, 0.3);
+  background: linear-gradient(135deg, rgba(242, 167, 187, 0.1) 0%, rgba(10, 126, 164, 0.08) 100%);
+  border: 1px solid rgba(242, 167, 187, 0.3);
   border-radius: 24px;
   padding: 2rem;
   overflow: hidden;
+  box-shadow: 0 12px 40px rgba(242, 167, 187, 0.08);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s, border-color 0.3s;
+}
+
+.mysteryBox:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 48px rgba(242, 167, 187, 0.15), 0 8px 16px rgba(10, 126, 164, 0.05);
+  border-color: rgba(242, 167, 187, 0.5);
 }
 
 .mysteryGlow {
@@ -592,6 +629,13 @@
   background: rgba(255, 255, 255, 0.7);
 }
 
+.card:hover.teal { border-color: rgba(10, 126, 164, 0.4); }
+.card:hover.blue { border-color: rgba(59, 130, 246, 0.4); }
+.card:hover.blush { border-color: rgba(242, 167, 187, 0.5); }
+.card:hover.gold { border-color: rgba(245, 200, 66, 0.4); }
+.card:hover.purple { border-color: rgba(168, 85, 247, 0.4); }
+.card:hover.red { border-color: rgba(239, 68, 68, 0.4); }
+
 :global(.dark) .card:hover { background: rgba(25, 35, 49, 0.65); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3); }
 
 .cardHeader { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
@@ -633,6 +677,9 @@
    Responsive
    ============================================ */
 @media (max-width: 768px) {
+  .container {
+    padding: 0.5rem;
+  }
   .welcomeBanner { padding: 1.5rem; }
   .welcomeTitleRow h1 { font-size: 1.75rem; }
   .statsGrid { grid-template-columns: 1fr 1fr; }
@@ -641,4 +688,13 @@
   .barChart { gap: 0.4rem; }
   .mysteryContent { flex-direction: column; }
   .motivationBanner { flex-direction: column; }
+}
+
+@media (max-width: 480px) {
+  .statsGrid {
+    grid-template-columns: 1fr !important;
+  }
+  .weeklyGrid {
+    grid-template-columns: 1fr !important;
+  }
 }

@@ -136,12 +136,14 @@
 .quoteContainer {
   font-family: var(--font-serif);
   font-style: italic;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   color: var(--text-secondary);
-  line-height: 1.4;
+  line-height: 1.45;
   text-align: center;
   border-left: 3px solid var(--color-blush);
-  padding-left: 0.75rem;
+  padding: 0.4rem 0.75rem;
+  background: rgba(242, 167, 187, 0.03);
+  border-radius: 0 8px 8px 0;
 }
 
 .sidebarOverlay {
@@ -151,13 +153,14 @@
 @media (max-width: 768px) {
   .sidebar {
     position: fixed;
-    left: -280px;
+    left: 0;
+    transform: translateX(-100%);
     top: 0;
     bottom: 0;
   }
   
   .sidebarOpen {
-    left: 0;
+    transform: translateX(0);
   }
   
   .closeSidebarBtn {
@@ -355,6 +358,7 @@
   opacity: 1 !important;
   color: var(--color-blush);
   background: var(--color-blush-light);
+  transform: scale(1.1);
 }
 
 .noHistory {
