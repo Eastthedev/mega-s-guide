@@ -1,3 +1,5 @@
+import JSZip from 'jszip';
+
 export const DEFAULT_API_KEY = "";
 
 export function getStoredApiKey(): string {
@@ -335,37 +337,123 @@ Structure the response to be highly visual, structured, and easy to read. Includ
 }
 
 
-// FEATURE: Parse document (PDF, Word, PPTX, etc.)
-export async function parseDocument(file: File): Promise<string> {
-  const base64Data = await new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result as string;
-      if (result) {
-        resolve(result.split(',')[1]);
-      } else {
-        reject(new Error('Failed to read file'));
-      }
-    };
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
+// Client-side PDF Parser using CDN PDF.js
+async function parsePdfClient(file: File): Promise<string> {
+  if (typeof window === 'undefined') return '';
 
-  const response = await fetch('/api/parse-document', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      base64Data,
-      filename: file.name,
-      mimeType: file.type,
-    }),
-  });
-
-  if (!response.ok) {
-    const data = await response.json().catch(() => ({}));
-    throw new Error(data.error || `Parsing error ${response.status}`);
+  let pdfjsLib = (window as any).pdfjsLib;
+  if (!pdfjsLib) {
+    await new Promise<void>((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js';
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error('Failed to load PDF.js engine from CDN'));
+      document.head.appendChild(script);
+    });
+    pdfjsLib = (window as any).pdfjsLib;
   }
 
-  const data = await response.json();
-  return data.text;
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  
+  let fullText = '';
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const textContent = await page.getTextContent();
+    const pageText = textContent.items
+      .map((item: any) => item.str)
+      .join(' ');
+    fullText += `[Page ${i}]\n${pageText}\n\n`;
+  }
+  
+  return fullText.trim();
+}
+
+// Client-side Word (.docx) Parser using CDN Mammoth
+async function parseDocxClient(file: File): Promise<string> {
+  if (typeof window === 'undefined') return '';
+
+  let mammoth = (window as any).mammoth;
+  if (!mammoth) {
+    await new Promise<void>((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js';
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error('Failed to load Word docx parser from CDN'));
+      document.head.appendChild(script);
+    });
+    mammoth = (window as any).mammoth;
+  }
+
+  const arrayBuffer = await file.arrayBuffer();
+  const result = await mammoth.extractRawText({ arrayBuffer });
+  return result.value;
+}
+
+// Client-side PowerPoint (.pptx) Parser using JSZip
+async function parsePptxClient(file: File): Promise<string> {
+  const arrayBuffer = await file.arrayBuffer();
+  const zip = await JSZip.loadAsync(arrayBuffer);
+  const slideFiles: { name: string; file: any }[] = [];
+  
+  zip.forEach((relativePath, file) => {
+    if (relativePath.startsWith('ppt/slides/slide') && relativePath.endsWith('.xml')) {
+      slideFiles.push({ name: relativePath, file });
+    }
+  });
+  
+  slideFiles.sort((a, b) => {
+    const numA = parseInt(a.name.match(/\d+/)?.[0] || '0', 10);
+    const numB = parseInt(b.name.match(/\d+/)?.[0] || '0', 10);
+    return numA - numB;
+  });
+  
+  let fullText = '';
+  for (const slide of slideFiles) {
+    const content = await slide.file.async('text');
+    const textMatches = content.match(/<a:t>(.*?)<\/a:t>/g);
+    if (textMatches) {
+      const slideText = textMatches
+        .map((m: string) => {
+          const textOnly = m.replace(/<a:t>|<\/a:t>/g, '');
+          return textOnly
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"')
+            .replace(/&apos;/g, "'");
+        })
+        .join(' ');
+      
+      const slideNum = slide.name.match(/\d+/)?.[0] || '0';
+      fullText += `[Slide ${slideNum}]\n${slideText}\n\n`;
+    }
+  }
+  
+  return fullText.trim();
+}
+
+// FEATURE: Parse document (PDF, Word, PPTX, etc.)
+export async function parseDocument(file: File): Promise<string> {
+  const filename = file.name;
+  const fileExtension = filename.split('.').pop()?.toLowerCase();
+
+  try {
+    if (fileExtension === 'pdf') {
+      return await parsePdfClient(file);
+    } else if (fileExtension === 'docx') {
+      return await parseDocxClient(file);
+    } else if (fileExtension === 'pptx') {
+      return await parsePptxClient(file);
+    } else if (fileExtension === 'txt' || fileExtension === 'md') {
+      return await file.text();
+    } else {
+      throw new Error(`Unsupported file type: .${fileExtension}. Please upload a PDF, Word (.docx), PowerPoint (.pptx), or text file.`);
+    }
+  } catch (err: any) {
+    console.error("Client-side document parsing error:", err);
+    throw new Error(`Failed to parse document: ${err.message || 'Unknown parsing error'}`);
+  }
 }
