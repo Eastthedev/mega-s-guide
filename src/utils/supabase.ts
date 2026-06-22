@@ -20,6 +20,7 @@ export interface UserStats {
   deck_finished: boolean;
   quiz_ace: boolean;
   quiz_pb: number;
+  timetable_progress?: Record<string, boolean>;
 }
 
 export async function getUserStats(): Promise<UserStats | null> {
@@ -45,6 +46,7 @@ export async function getUserStats(): Promise<UserStats | null> {
           deck_finished: false,
           quiz_ace: false,
           quiz_pb: 0,
+          timetable_progress: {},
         };
         await syncUserStats(defaultStats);
         return defaultStats;
@@ -60,6 +62,7 @@ export async function getUserStats(): Promise<UserStats | null> {
       deck_finished: !!data.deck_finished,
       quiz_ace: !!data.quiz_ace,
       quiz_pb: data.quiz_pb || 0,
+      timetable_progress: data.timetable_progress || {},
     };
   } catch (err) {
     console.error('Failed to get user stats:', err);
@@ -73,6 +76,17 @@ export async function syncUserStats(stats: UserStats): Promise<boolean> {
     if (!user) return false;
     const userId = user.id;
 
+    // Fallback to local storage if timetable_progress is not provided
+    let timetableProgress = stats.timetable_progress;
+    if (!timetableProgress && typeof window !== 'undefined') {
+      const saved = localStorage.getItem('timetable-progress');
+      if (saved) {
+        try {
+          timetableProgress = JSON.parse(saved);
+        } catch (e) {}
+      }
+    }
+
     const { error } = await supabase
       .from('user_stats')
       .upsert({
@@ -84,6 +98,7 @@ export async function syncUserStats(stats: UserStats): Promise<boolean> {
         deck_finished: stats.deck_finished,
         quiz_ace: stats.quiz_ace,
         quiz_pb: stats.quiz_pb,
+        timetable_progress: timetableProgress || {},
         updated_at: new Date().toISOString()
       });
 
@@ -109,6 +124,7 @@ export async function syncCurrentStats(): Promise<boolean> {
     deck_finished: localStorage.getItem('megas_guide_deck_finished') === 'true',
     quiz_ace: localStorage.getItem('megas_guide_quiz_ace') === 'true',
     quiz_pb: parseInt(localStorage.getItem('megas_guide_quiz_pb') || '0', 10),
+    timetable_progress: JSON.parse(localStorage.getItem('timetable-progress') || '{}'),
   };
   return syncUserStats(stats);
 }

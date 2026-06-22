@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS user_stats (
     deck_finished BOOLEAN DEFAULT false,
     quiz_ace BOOLEAN DEFAULT false,
     quiz_pb INT DEFAULT 0,
+    timetable_progress JSONB DEFAULT '{}'::jsonb,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 

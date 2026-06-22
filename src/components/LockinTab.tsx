@@ -4,6 +4,7 @@
 
 import React, { useState, useEffect } from "react";
 import { W, Week } from "../data/timetable";
+import { getUserStats, syncUserStats } from "../utils/supabase";
 import "./LockinTab.css";
 
 type SubjectKey = "haem" | "chem" | "morb_tue" | "mcb" | "pharm" | "morb_fri";
@@ -45,15 +46,32 @@ export default function LockinTab({ onAddToast }: { onAddToast: (msg: string) =>
       document.documentElement.setAttribute("data-theme", initialTheme);
     }
 
-    // Load completed topics state
+    // Load completed topics state from localStorage first
     const savedProgress = localStorage.getItem("timetable-progress");
+    let localProgress = {};
     if (savedProgress) {
       try {
-        setCompletedTopics(JSON.parse(savedProgress));
+        localProgress = JSON.parse(savedProgress);
+        setCompletedTopics(localProgress);
       } catch (e) {
         console.error("Failed to parse progress", e);
       }
     }
+
+    // Async load from Supabase database to merge/restore
+    const loadDBProgress = async () => {
+      try {
+        const stats = await getUserStats();
+        if (stats && stats.timetable_progress) {
+          const merged = { ...localProgress, ...stats.timetable_progress };
+          setCompletedTopics(merged);
+          localStorage.setItem("timetable-progress", JSON.stringify(merged));
+        }
+      } catch (err) {
+        console.error("Failed to load progress from Supabase:", err);
+      }
+    };
+    loadDBProgress();
   }, []);
 
   const toggleTheme = () => {
@@ -64,17 +82,37 @@ export default function LockinTab({ onAddToast }: { onAddToast: (msg: string) =>
     onAddToast(`Timetable switched to ${nextTheme === 'light' ? 'Light' : 'Dark'} Theme 💡`);
   };
 
-  const toggleTopic = (id: string) => {
+  const toggleTopic = async (id: string) => {
     const nextState = { ...completedTopics, [id]: !completedTopics[id] };
     setCompletedTopics(nextState);
     localStorage.setItem("timetable-progress", JSON.stringify(nextState));
+
+    try {
+      const stats = await getUserStats();
+      if (stats) {
+        stats.timetable_progress = nextState;
+        await syncUserStats(stats);
+      }
+    } catch (err) {
+      console.error("Failed to sync progress to Supabase:", err);
+    }
   };
 
-  const resetProgress = () => {
+  const resetProgress = async () => {
     if (confirm("Are you sure you want to reset all your progress?")) {
       setCompletedTopics({});
       localStorage.removeItem("timetable-progress");
       onAddToast("All progress reset! Let's start fresh. 💪");
+
+      try {
+        const stats = await getUserStats();
+        if (stats) {
+          stats.timetable_progress = {};
+          await syncUserStats(stats);
+        }
+      } catch (err) {
+        console.error("Failed to sync reset to Supabase:", err);
+      }
     }
   };
 
