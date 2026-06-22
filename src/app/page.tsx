@@ -22,6 +22,7 @@ import LoveButton from '../components/LoveButton';
 import ResearchTab from '../components/ResearchTab';
 import AuthScreen from '../components/AuthScreen';
 import MnemonicsTab from '../components/MnemonicsTab';
+import LockinTab from '../components/LockinTab';
 import { 
   getUserStats, syncUserStats, supabase, getResearchSessions, ResearchSession,
   getChatSessions, ChatSession, getNoteSummaries, SavedSummary,
@@ -420,6 +421,8 @@ export default function Home() {
             setActiveQuizAttemptId={setActiveQuizAttemptId}
           />
         );
+      case 'lockin':
+        return <LockinTab onAddToast={addToast} />;
       case 'research':
         return (
           <ResearchTab 

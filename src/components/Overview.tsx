@@ -219,6 +219,7 @@ export default function Overview({ setActiveTab, onAddToast }: OverviewProps) {
     { id: 'research', title: 'Research Hub', description: 'General medical knowledge. Excellent for quick facts or definitions.', icon: Search, color: 'blue', tagline: 'Ask AI anything' },
     { id: 'summarize', title: 'Summarize Notes', description: 'Generate beautiful notes in Concise, Detailed, Study Guide, or Key Facts templates.', icon: FileText, color: 'blush', tagline: 'Draft summaries' },
     { id: 'explain', title: 'Detailed Explainer', description: 'Get clear clinical explanations, funny analogies, and highlighted exam points.', icon: Sparkles, color: 'gold', tagline: 'Master complex concepts' },
+    { id: 'lockin', title: '3rd MB lockin', description: 'Interactive MBBS Second Block study timetable. Track weeks, filter subjects, and manage your prep progress.', icon: Calendar, color: 'purple', tagline: 'Study Timetable & Planner' },
     { id: 'flashcards', title: 'Flashcards Deck', description: 'Flip medical flashcards with active recall grading and memory intervals.', icon: BookOpen, color: 'purple', tagline: 'Test your memory' },
     { id: 'quiz', title: 'Quiz Mode', description: 'Generate multi-choice or true/false questions with thorough AI feedback.', icon: HelpCircle, color: 'red', tagline: 'Evaluate progress' },
   ];

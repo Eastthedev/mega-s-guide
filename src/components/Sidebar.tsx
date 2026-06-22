@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Heart, MessageSquare, FileText, Sparkles, BookOpen, 
   HelpCircle, Trophy, Flame, Play, Award, X, Search, Home, Lightbulb,
-  Plus, Trash2, ChevronDown, ChevronRight
+  Plus, Trash2, ChevronDown, ChevronRight, Calendar
 } from 'lucide-react';
 import { 
   deleteResearchSession, 
@@ -250,7 +250,8 @@ export default function Sidebar({
     { id: 'mnemonics', label: 'Mnemonics', icon: Lightbulb },
     { id: 'flashcards', label: 'Flashcards', icon: BookOpen },
     { id: 'quiz', label: 'Quiz Mode', icon: HelpCircle },
-    { id: 'research', label: 'Research', icon: Search }
+    { id: 'research', label: 'Research', icon: Search },
+    { id: 'lockin', label: '3rd MB Lockin', icon: Calendar }
   ];
 
   const renderHistorySubmenu = (itemId: string) => {
