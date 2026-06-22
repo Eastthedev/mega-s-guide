@@ -3,8 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Heart, MessageSquare, FileText, Sparkles, BookOpen, 
-  HelpCircle, Trophy, Flame, Play, Award, X, Search, Home, Lightbulb
+  HelpCircle, Trophy, Flame, Play, Award, X, Search, Home, Lightbulb,
+  Plus, Trash2, ChevronDown, ChevronRight
 } from 'lucide-react';
+import { deleteResearchSession } from '../utils/supabase';
 import { getRandomSidebarQuote } from '../utils/quotes';
 import styles from './Sidebar.module.css';
 
@@ -13,9 +15,24 @@ interface SidebarProps {
   setActiveTab: (tab: string) => void;
   isOpen: boolean;
   onClose: () => void;
+  researchSessions?: any[];
+  currentResearchSessionId?: string;
+  setResearchSessions?: React.Dispatch<React.SetStateAction<any[]>>;
+  setCurrentResearchSessionId?: (id: string) => void;
+  onAddToast?: (msg: string) => void;
 }
 
-export default function Sidebar({ activeTab, setActiveTab, isOpen, onClose }: SidebarProps) {
+export default function Sidebar({ 
+  activeTab, 
+  setActiveTab, 
+  isOpen, 
+  onClose,
+  researchSessions = [],
+  currentResearchSessionId = '',
+  setResearchSessions,
+  setCurrentResearchSessionId,
+  onAddToast
+}: SidebarProps) {
   const [quote, setQuote] = useState('');
   const [streak, setStreak] = useState(0);
   const [totalSessions, setTotalSessions] = useState(0);
@@ -25,6 +42,49 @@ export default function Sidebar({ activeTab, setActiveTab, isOpen, onClose }: Si
   const [hasThreeSummaries, setHasThreeSummaries] = useState(false);
   const [hasDeckCompleted, setHasDeckCompleted] = useState(false);
   const [hasQuizAce, setHasQuizAce] = useState(false);
+
+  // Collapsible state for research history list
+  const [isHistoryCollapsed, setIsHistoryCollapsed] = useState(false);
+
+  // New research chat handler
+  const handleNewChat = () => {
+    const newSessId = 'res_' + Math.random().toString(36).substring(2, 15);
+    if (setCurrentResearchSessionId) {
+      setCurrentResearchSessionId(newSessId);
+    }
+    if (onAddToast) {
+      onAddToast("New research thread started! 🔬");
+    }
+  };
+
+  // Delete research session handler
+  const handleDeleteSession = async (sessionId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await deleteResearchSession(sessionId);
+      if (setResearchSessions) {
+        const updatedSessions = researchSessions.filter(s => s.id !== sessionId);
+        setResearchSessions(updatedSessions);
+        if (onAddToast) {
+          onAddToast("Research thread deleted. 🧹");
+        }
+
+        if (currentResearchSessionId === sessionId) {
+          if (updatedSessions.length > 0) {
+            if (setCurrentResearchSessionId) setCurrentResearchSessionId(updatedSessions[0].id);
+          } else {
+            const newSessId = 'res_' + Math.random().toString(36).substring(2, 15);
+            if (setCurrentResearchSessionId) setCurrentResearchSessionId(newSessId);
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Failed to delete research session:", err);
+      if (onAddToast) {
+        onAddToast("Error deleting session. 💙");
+      }
+    }
+  };
 
   useEffect(() => {
     // 1. Pick a random sidebar quote
@@ -82,18 +142,85 @@ export default function Sidebar({ activeTab, setActiveTab, isOpen, onClose }: Si
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
+            const isResearch = item.id === 'research';
+
             return (
-              <button
-                key={item.id}
-                onClick={() => {
-                  setActiveTab(item.id);
-                  onClose();
-                }}
-                className={`${styles.navItem} ${isActive ? styles.activeNavItem : ''}`}
-              >
-                <Icon size={18} />
-                <span>{item.label}</span>
-              </button>
+              <div key={item.id} className={styles.navItemWrapper}>
+                <button
+                  onClick={() => {
+                    setActiveTab(item.id);
+                    if (!isResearch) onClose();
+                  }}
+                  className={`${styles.navItem} ${isActive ? styles.activeNavItem : ''}`}
+                >
+                  <Icon size={18} />
+                  <span>{item.label}</span>
+                </button>
+
+                {isResearch && isActive && (
+                  <div className={styles.sidebarResearchHistory}>
+                    {/* Collapsible history header inside main side menu */}
+                    <button 
+                      className={styles.historyTabHeader} 
+                      onClick={() => setIsHistoryCollapsed(!isHistoryCollapsed)}
+                      aria-expanded={!isHistoryCollapsed}
+                    >
+                      <div className={styles.historyTabTitle}>
+                        <MessageSquare size={13} className="text-teal" />
+                        <span>History Threads</span>
+                      </div>
+                      {isHistoryCollapsed ? <ChevronRight size={13} /> : <ChevronDown size={13} />}
+                    </button>
+
+                    {!isHistoryCollapsed && (
+                      <div className={styles.historySubsection}>
+                        <button className={styles.newChatBtn} onClick={handleNewChat}>
+                          <Plus size={13} />
+                          <span>New Thread</span>
+                        </button>
+
+                        <div className={styles.sessionList}>
+                          {researchSessions.length === 0 ? (
+                            <div className={styles.noHistory}>
+                              <p>No history yet</p>
+                            </div>
+                          ) : (
+                            researchSessions.map((sess) => {
+                              const isSessionActive = sess.id === currentResearchSessionId;
+                              return (
+                                <div
+                                  key={sess.id}
+                                  className={`${styles.sessionItem} ${isSessionActive ? styles.activeSessionItem : ''}`}
+                                  onClick={() => {
+                                    if (setCurrentResearchSessionId) setCurrentResearchSessionId(sess.id);
+                                    // Close sidebar drawer on mobile
+                                    if (window.innerWidth <= 768) {
+                                      onClose();
+                                    }
+                                  }}
+                                >
+                                  <div className={styles.sessionTitleWrapper}>
+                                    <MessageSquare size={13} className={isSessionActive ? 'text-teal' : 'text-muted'} />
+                                    <span className={styles.sessionTitle}>{sess.title}</span>
+                                  </div>
+                                  <button
+                                    className={styles.deleteSessionBtn}
+                                    onClick={(e) => handleDeleteSession(sess.id, e)}
+                                    title="Delete Research Thread"
+                                    aria-label="Delete Session"
+                                  >
+                                    <Trash2 size={12} />
+                                  </button>
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             );
           })}
         </nav>

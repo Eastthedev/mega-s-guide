@@ -173,3 +173,193 @@
     backdrop-filter: blur(2px);
   }
 }
+
+.navItemWrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.sidebarResearchHistory {
+  padding: 0.25rem 0.5rem 0.5rem 2.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.historyTabHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: transparent;
+  border: none;
+  padding: 0.35rem 0.5rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  width: 100%;
+  transition: all 0.2s ease;
+  border-radius: 6px;
+  user-select: none;
+}
+
+.historyTabHeader:hover {
+  color: var(--color-teal);
+  background: var(--color-teal-light);
+}
+
+:global(.dark) .historyTabHeader:hover {
+  background: rgba(10, 126, 164, 0.15);
+}
+
+.historyTabTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.historySubsection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.newChatBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  background: var(--color-teal);
+  color: white;
+  border: none;
+  padding: 0.45rem 0.75rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  width: 100%;
+  box-shadow: 0 2px 4px rgba(10, 126, 164, 0.1);
+}
+
+.newChatBtn:hover {
+  background: var(--color-teal-hover);
+  transform: translateY(-1px);
+}
+
+.sessionList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  max-height: 200px;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+/* Custom thin scrollbar for sidebar session list */
+.sessionList::-webkit-scrollbar {
+  width: 4px;
+}
+.sessionList::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sessionList::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 2px;
+}
+.sessionList::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+.sessionItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.4rem 0.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+}
+
+.sessionItem:hover {
+  background: var(--color-teal-light);
+  border-color: var(--border-color);
+  color: var(--color-teal);
+}
+
+:global(.dark) .sessionItem:hover {
+  background: rgba(10, 126, 164, 0.15);
+}
+
+.activeSessionItem {
+  background: var(--color-teal-light);
+  border-color: var(--color-teal);
+  color: var(--color-teal);
+  font-weight: 600;
+}
+
+:global(.dark) .activeSessionItem {
+  background: rgba(10, 126, 164, 0.2);
+}
+
+.sessionTitleWrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  overflow: hidden;
+  flex: 1;
+}
+
+.sessionTitle {
+  font-size: 0.78rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.deleteSessionBtn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.15rem;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  opacity: 0;
+}
+
+.sessionItem:hover .deleteSessionBtn {
+  opacity: 0.7;
+}
+
+.deleteSessionBtn:hover {
+  opacity: 1 !important;
+  color: var(--color-blush);
+  background: var(--color-blush-light);
+}
+
+.noHistory {
+  padding: 0.75rem 0;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}

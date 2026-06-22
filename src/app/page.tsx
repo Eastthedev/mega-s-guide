@@ -22,7 +22,7 @@ import LoveButton from '../components/LoveButton';
 import ResearchTab from '../components/ResearchTab';
 import AuthScreen from '../components/AuthScreen';
 import MnemonicsTab from '../components/MnemonicsTab';
-import { getUserStats, syncUserStats, supabase } from '../utils/supabase';
+import { getUserStats, syncUserStats, supabase, getResearchSessions, ResearchSession } from '../utils/supabase';
 
 interface Toast {
   id: string;
@@ -37,6 +37,29 @@ export default function Home() {
   const [jumpNotes, setJumpNotes] = useState<string | undefined>(undefined);
   const [user, setUser] = useState<any>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
+
+  // Research history shared states
+  const [researchSessions, setResearchSessions] = useState<ResearchSession[]>([]);
+  const [currentResearchSessionId, setCurrentResearchSessionId] = useState<string>('');
+
+  // Load research sessions on auth state change
+  useEffect(() => {
+    if (!user) return;
+    const loadSessions = async () => {
+      try {
+        const fetchedSessions = await getResearchSessions();
+        setResearchSessions(fetchedSessions);
+        if (fetchedSessions.length > 0) {
+          setCurrentResearchSessionId(fetchedSessions[0].id);
+        } else {
+          setCurrentResearchSessionId('res_' + Math.random().toString(36).substring(2, 15));
+        }
+      } catch (err) {
+        console.error("Failed to load research sessions on mount:", err);
+      }
+    };
+    loadSessions();
+  }, [user]);
 
   // Monitor auth state changes
   useEffect(() => {
@@ -322,7 +345,15 @@ export default function Home() {
       case 'quiz':
         return <QuizMode onAddToast={addToast} initialNotes={jumpNotes} />;
       case 'research':
-        return <ResearchTab onAddToast={addToast} />;
+        return (
+          <ResearchTab 
+            onAddToast={addToast} 
+            sessions={researchSessions}
+            currentSessionId={currentResearchSessionId}
+            setSessions={setResearchSessions}
+            setCurrentSessionId={setCurrentResearchSessionId}
+          />
+        );
       default:
         return <Overview setActiveTab={handleJumpToTab} onAddToast={addToast} />;
     }
@@ -684,6 +715,11 @@ export default function Home() {
             setActiveTab={setActiveTab}
             isOpen={sidebarOpen}
             onClose={() => setSidebarOpen(false)}
+            researchSessions={researchSessions}
+            currentResearchSessionId={currentResearchSessionId}
+            setResearchSessions={setResearchSessions}
+            setCurrentResearchSessionId={setCurrentResearchSessionId}
+            onAddToast={addToast}
           />
 
           <div className={styles.mainContent}>

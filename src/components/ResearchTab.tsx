@@ -17,6 +17,10 @@ import styles from './ResearchTab.module.css';
 
 interface ResearchTabProps {
   onAddToast: (message: string) => void;
+  sessions: ResearchSession[];
+  currentSessionId: string;
+  setSessions: React.Dispatch<React.SetStateAction<ResearchSession[]>>;
+  setCurrentSessionId: (id: string) => void;
 }
 
 const STARTER_QUESTIONS = [
@@ -156,11 +160,13 @@ function InteractiveViewer({ type, content, title = "Visual Guide" }: Interactiv
   );
 }
 
-export default function ResearchTab({ onAddToast }: ResearchTabProps) {
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const [isHistoryCollapsed, setIsHistoryCollapsed] = useState(false);
-  const [sessions, setSessions] = useState<ResearchSession[]>([]);
-  const [currentSessionId, setCurrentSessionId] = useState<string>('');
+export default function ResearchTab({ 
+  onAddToast, 
+  sessions, 
+  currentSessionId, 
+  setSessions, 
+  setCurrentSessionId 
+}: ResearchTabProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -171,28 +177,24 @@ export default function ResearchTab({ onAddToast }: ResearchTabProps) {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Helper to generate a new session ID
-  const generateSessionId = () => 'res_' + Math.random().toString(36).substring(2, 15);
-
-  // Load sessions from Supabase/cache
+  // Load messages dynamically based on currentSessionId
   useEffect(() => {
-    const loadSessions = async () => {
-      const fetchedSessions = await getResearchSessions();
-      setSessions(fetchedSessions);
+    if (!currentSessionId) return;
 
-      if (fetchedSessions.length > 0) {
-        const firstSession = fetchedSessions[0];
-        setCurrentSessionId(firstSession.id);
-        const msgs = await getResearchMessages(firstSession.id);
+    const loadMessages = async () => {
+      setIsLoading(true);
+      try {
+        const msgs = await getResearchMessages(currentSessionId);
         setMessages(msgs);
-      } else {
-        const newSessId = generateSessionId();
-        setCurrentSessionId(newSessId);
-        setMessages([]);
+      } catch (err) {
+        console.error("Failed to load messages for research session:", err);
+        onAddToast("Failed to load research session messages. 💙");
+      } finally {
+        setIsLoading(false);
       }
     };
-    loadSessions();
-  }, []);
+    loadMessages();
+  }, [currentSessionId]);
 
   // Scroll to bottom
   useEffect(() => {
@@ -252,57 +254,7 @@ export default function ResearchTab({ onAddToast }: ResearchTabProps) {
     }
   };
 
-  // Switch research sessions
-  const handleSelectSession = async (sessionId: string) => {
-    setIsHistoryOpen(false);
-    if (sessionId === currentSessionId) return;
-    setIsLoading(true);
-    setCurrentSessionId(sessionId);
-    try {
-      const msgs = await getResearchMessages(sessionId);
-      setMessages(msgs);
-    } catch (err) {
-      console.error(err);
-      onAddToast("Failed to load research session. 💙");
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
-  // Start new clean research session
-  const handleNewChat = () => {
-    setIsHistoryOpen(false);
-    const newSessId = generateSessionId();
-    setCurrentSessionId(newSessId);
-    setMessages([]);
-    onAddToast("New research thread started! 🔬");
-  };
-
-  // Delete research session
-  const handleDeleteSession = async (sessionId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    try {
-      await deleteResearchSession(sessionId);
-      const updatedSessions = sessions.filter(s => s.id !== sessionId);
-      setSessions(updatedSessions);
-      onAddToast("Research thread deleted. 🧹");
-
-      if (currentSessionId === sessionId) {
-        if (updatedSessions.length > 0) {
-          setCurrentSessionId(updatedSessions[0].id);
-          const msgs = await getResearchMessages(updatedSessions[0].id);
-          setMessages(msgs);
-        } else {
-          const newSessId = generateSessionId();
-          setCurrentSessionId(newSessId);
-          setMessages([]);
-        }
-      }
-    } catch (err) {
-      console.error("Failed to delete research session:", err);
-      onAddToast("Error deleting session. 💙");
-    }
-  };
 
   const handleSendMessage = async (textToSend: string) => {
     if (!textToSend.trim() && !attachedFile) return;
@@ -439,88 +391,8 @@ export default function ResearchTab({ onAddToast }: ResearchTabProps) {
 
   return (
     <div className={styles.chatWrapper}>
-      {/* Mobile Backdrop Overlay */}
-      {isHistoryOpen && (
-        <div className={styles.sidebarOverlay} onClick={() => setIsHistoryOpen(false)} />
-      )}
-
-      {/* ChatGPT-style Sidebar */}
-      <div className={`${styles.chatSidebar} ${isHistoryOpen ? styles.sidebarOpen : ''}`}>
-        <div className={styles.sidebarMobileHeader}>
-          <span>Research History</span>
-          <button className={styles.closeSidebarBtn} onClick={() => setIsHistoryOpen(false)}>
-            <X size={18} />
-          </button>
-        </div>
-
-        {/* Collapsible History Tab Header */}
-        <button 
-          className={styles.historyTabHeader} 
-          onClick={() => setIsHistoryCollapsed(!isHistoryCollapsed)}
-          aria-expanded={!isHistoryCollapsed}
-        >
-          <div className={styles.historyTabTitle}>
-            <MessageSquare size={16} className="text-teal" />
-            <span>Research History</span>
-          </div>
-          {isHistoryCollapsed ? <ChevronRight size={16} className="text-muted" /> : <ChevronDown size={16} className="text-muted" />}
-        </button>
-
-        {/* Collapsible history list subsection */}
-        {!isHistoryCollapsed && (
-          <div className={styles.historySubsection}>
-            <button className={styles.newChatBtn} onClick={handleNewChat}>
-              <Plus size={16} />
-              <span>New Chat</span>
-            </button>
-
-            <div className={styles.sessionList}>
-              {sessions.length === 0 ? (
-                <div className={styles.noHistory}>
-                  <p>No history yet</p>
-                </div>
-              ) : (
-                sessions.map((sess) => {
-                  const isActive = sess.id === currentSessionId;
-                  return (
-                    <div
-                      key={sess.id}
-                      className={`${styles.sessionItem} ${isActive ? styles.activeSessionItem : ''}`}
-                      onClick={() => handleSelectSession(sess.id)}
-                    >
-                      <div className={styles.sessionTitleWrapper}>
-                        <MessageSquare size={14} className={isActive ? 'text-teal' : 'text-muted'} />
-                        <span className={styles.sessionTitle}>{sess.title}</span>
-                      </div>
-                      <button
-                        className={styles.deleteSessionBtn}
-                        onClick={(e) => handleDeleteSession(sess.id, e)}
-                        title="Delete Research Thread"
-                        aria-label="Delete Session"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-
       {/* Main Chat Area */}
       <div className={styles.chatContent}>
-        {/* Mobile History Toggle Bar */}
-        <div className={styles.mobileHistoryBar}>
-          <button className={styles.mobileHistoryBtn} onClick={() => setIsHistoryOpen(true)}>
-            <MessageSquare size={15} />
-            <span>Research History</span>
-          </button>
-          <span className={styles.mobileActiveTitle}>
-            {sessions.find(s => s.id === currentSessionId)?.title || 'New Chat'}
-          </span>
-        </div>
         {/* Chat History View */}
         <div className={`${styles.chatHistory} paper-texture`}>
           {messages.length === 0 ? (
