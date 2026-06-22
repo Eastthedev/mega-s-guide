@@ -6,7 +6,13 @@ import {
   HelpCircle, Trophy, Flame, Play, Award, X, Search, Home, Lightbulb,
   Plus, Trash2, ChevronDown, ChevronRight
 } from 'lucide-react';
-import { deleteResearchSession } from '../utils/supabase';
+import { 
+  deleteResearchSession, 
+  deleteChatSession, 
+  deleteNoteSummary, 
+  deleteExplanation, 
+  deleteQuizAttempt 
+} from '../utils/supabase';
 import { getRandomSidebarQuote } from '../utils/quotes';
 import styles from './Sidebar.module.css';
 
@@ -15,11 +21,37 @@ interface SidebarProps {
   setActiveTab: (tab: string) => void;
   isOpen: boolean;
   onClose: () => void;
+  onAddToast?: (msg: string) => void;
+
+  // Research history props
   researchSessions?: any[];
   currentResearchSessionId?: string;
   setResearchSessions?: React.Dispatch<React.SetStateAction<any[]>>;
   setCurrentResearchSessionId?: (id: string) => void;
-  onAddToast?: (msg: string) => void;
+
+  // AI Chat history props
+  chatSessions?: any[];
+  currentChatSessionId?: string;
+  setChatSessions?: React.Dispatch<React.SetStateAction<any[]>>;
+  setCurrentChatSessionId?: (id: string) => void;
+
+  // Note Summaries history props
+  savedSummaries?: any[];
+  activeSummaryId?: string | null;
+  setSavedSummaries?: React.Dispatch<React.SetStateAction<any[]>>;
+  setActiveSummaryId?: (id: string | null) => void;
+
+  // Detailed Explanation history props
+  explanationHistory?: any[];
+  activeExplanationId?: string | null;
+  setExplanationHistory?: React.Dispatch<React.SetStateAction<any[]>>;
+  setActiveExplanationId?: (id: string | null) => void;
+
+  // Quiz Mode history props
+  quizHistory?: any[];
+  activeQuizAttemptId?: string | null;
+  setQuizHistory?: React.Dispatch<React.SetStateAction<any[]>>;
+  setActiveQuizAttemptId?: (id: string | null) => void;
 }
 
 export default function Sidebar({ 
@@ -27,11 +59,32 @@ export default function Sidebar({
   setActiveTab, 
   isOpen, 
   onClose,
+  onAddToast,
+  
   researchSessions = [],
   currentResearchSessionId = '',
   setResearchSessions,
   setCurrentResearchSessionId,
-  onAddToast
+
+  chatSessions = [],
+  currentChatSessionId = '',
+  setChatSessions,
+  setCurrentChatSessionId,
+
+  savedSummaries = [],
+  activeSummaryId = null,
+  setSavedSummaries,
+  setActiveSummaryId,
+
+  explanationHistory = [],
+  activeExplanationId = null,
+  setExplanationHistory,
+  setActiveExplanationId,
+
+  quizHistory = [],
+  activeQuizAttemptId = null,
+  setQuizHistory,
+  setActiveQuizAttemptId
 }: SidebarProps) {
   const [quote, setQuote] = useState('');
   const [streak, setStreak] = useState(0);
@@ -43,61 +96,142 @@ export default function Sidebar({
   const [hasDeckCompleted, setHasDeckCompleted] = useState(false);
   const [hasQuizAce, setHasQuizAce] = useState(false);
 
-  // Collapsible state for research history list
-  const [isHistoryCollapsed, setIsHistoryCollapsed] = useState(false);
+  // Collapsible category states
+  const [isResearchCollapsed, setIsResearchCollapsed] = useState(false);
+  const [isChatCollapsed, setIsChatCollapsed] = useState(false);
+  const [isSummaryCollapsed, setIsSummaryCollapsed] = useState(false);
+  const [isExplainCollapsed, setIsExplainCollapsed] = useState(false);
+  const [isQuizCollapsed, setIsQuizCollapsed] = useState(false);
 
-  // New research chat handler
-  const handleNewChat = () => {
+  // New session handlers
+  const handleNewResearch = () => {
     const newSessId = 'res_' + Math.random().toString(36).substring(2, 15);
-    if (setCurrentResearchSessionId) {
-      setCurrentResearchSessionId(newSessId);
-    }
-    if (onAddToast) {
-      onAddToast("New research thread started! 🔬");
-    }
+    if (setCurrentResearchSessionId) setCurrentResearchSessionId(newSessId);
+    if (onAddToast) onAddToast("New research thread started! 🔬");
   };
 
-  // Delete research session handler
-  const handleDeleteSession = async (sessionId: string, e: React.MouseEvent) => {
+  const handleNewChatAI = () => {
+    const newSessId = 'chat_' + Math.random().toString(36).substring(2, 15);
+    if (setCurrentChatSessionId) setCurrentChatSessionId(newSessId);
+    if (onAddToast) onAddToast("New AI Chat session started! 💬");
+  };
+
+  const handleNewSummary = () => {
+    if (setActiveSummaryId) setActiveSummaryId(null);
+    if (onAddToast) onAddToast("Ready for a new notes summary! 📝");
+  };
+
+  const handleNewExplanation = () => {
+    if (setActiveExplanationId) setActiveExplanationId(null);
+    if (onAddToast) onAddToast("Ready for a new topic breakdown! 🧠");
+  };
+
+  const handleNewQuiz = () => {
+    if (setActiveQuizAttemptId) setActiveQuizAttemptId(null);
+    if (onAddToast) onAddToast("Ready to start a new quiz attempt! 🏆");
+  };
+
+  // Delete session handlers
+  const handleDeleteResearch = async (sessionId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
       await deleteResearchSession(sessionId);
       if (setResearchSessions) {
-        const updatedSessions = researchSessions.filter(s => s.id !== sessionId);
-        setResearchSessions(updatedSessions);
-        if (onAddToast) {
-          onAddToast("Research thread deleted. 🧹");
-        }
-
+        const updated = researchSessions.filter(s => s.id !== sessionId);
+        setResearchSessions(updated);
+        if (onAddToast) onAddToast("Research thread deleted. 🧹");
         if (currentResearchSessionId === sessionId) {
-          if (updatedSessions.length > 0) {
-            if (setCurrentResearchSessionId) setCurrentResearchSessionId(updatedSessions[0].id);
+          if (updated.length > 0) {
+            if (setCurrentResearchSessionId) setCurrentResearchSessionId(updated[0].id);
           } else {
-            const newSessId = 'res_' + Math.random().toString(36).substring(2, 15);
-            if (setCurrentResearchSessionId) setCurrentResearchSessionId(newSessId);
+            if (setCurrentResearchSessionId) setCurrentResearchSessionId('res_' + Math.random().toString(36).substring(2, 15));
           }
         }
       }
     } catch (err) {
-      console.error("Failed to delete research session:", err);
-      if (onAddToast) {
-        onAddToast("Error deleting session. 💙");
+      console.error(err);
+    }
+  };
+
+  const handleDeleteChat = async (sessionId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await deleteChatSession(sessionId);
+      if (setChatSessions) {
+        const updated = chatSessions.filter(s => s.id !== sessionId);
+        setChatSessions(updated);
+        if (onAddToast) onAddToast("AI Chat thread deleted. 🧹");
+        if (currentChatSessionId === sessionId) {
+          if (updated.length > 0) {
+            if (setCurrentChatSessionId) setCurrentChatSessionId(updated[0].id);
+          } else {
+            if (setCurrentChatSessionId) setCurrentChatSessionId('chat_' + Math.random().toString(36).substring(2, 15));
+          }
+        }
       }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteSummary = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await deleteNoteSummary(id);
+      if (setSavedSummaries) {
+        const updated = savedSummaries.filter(s => s.id !== id);
+        setSavedSummaries(updated);
+        if (onAddToast) onAddToast("Summary deleted. 🧹");
+        if (activeSummaryId === id) {
+          if (setActiveSummaryId) setActiveSummaryId(null);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteExplanation = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await deleteExplanation(id);
+      if (setExplanationHistory) {
+        const updated = explanationHistory.filter(s => s.id !== id);
+        setExplanationHistory(updated);
+        if (onAddToast) onAddToast("Explanation history deleted. 🧹");
+        if (activeExplanationId === id) {
+          if (setActiveExplanationId) setActiveExplanationId(null);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteQuiz = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await deleteQuizAttempt(id);
+      if (setQuizHistory) {
+        const updated = quizHistory.filter(s => s.id !== id);
+        setQuizHistory(updated);
+        if (onAddToast) onAddToast("Quiz attempt deleted. 🧹");
+        if (activeQuizAttemptId === id) {
+          if (setActiveQuizAttemptId) setActiveQuizAttemptId(null);
+        }
+      }
+    } catch (err) {
+      console.error(err);
     }
   };
 
   useEffect(() => {
-    // 1. Pick a random sidebar quote
     setQuote(getRandomSidebarQuote());
-
-    // 2. Load streak & stats from localStorage
     const savedStreak = parseInt(localStorage.getItem('megas_guide_streak') || '0', 10);
     const savedSessions = parseInt(localStorage.getItem('megas_guide_sessions_count') || '0', 10);
-    
     setStreak(savedStreak);
     setTotalSessions(savedSessions);
 
-    // 3. Load achievement triggers
     const summariesCount = parseInt(localStorage.getItem('megas_guide_summaries_count') || '0', 10);
     const deckFinished = localStorage.getItem('megas_guide_deck_finished') === 'true';
     const quizAce = localStorage.getItem('megas_guide_quiz_ace') === 'true';
@@ -106,7 +240,7 @@ export default function Sidebar({
     setHasThreeSummaries(summariesCount >= 3);
     setHasDeckCompleted(deckFinished);
     setHasQuizAce(quizAce);
-  }, [activeTab]); // Refresh states whenever tabs change (as operations update localStorage)
+  }, [activeTab]);
 
   const navItems = [
     { id: 'overview', label: 'Dashboard', icon: Home },
@@ -118,6 +252,245 @@ export default function Sidebar({
     { id: 'quiz', label: 'Quiz Mode', icon: HelpCircle },
     { id: 'research', label: 'Research', icon: Search }
   ];
+
+  const renderHistorySubmenu = (itemId: string) => {
+    if (itemId === 'research') {
+      return (
+        <div className={styles.sidebarResearchHistory}>
+          <button className={styles.historyTabHeader} onClick={() => setIsResearchCollapsed(!isResearchCollapsed)}>
+            <div className={styles.historyTabTitle}>
+              <MessageSquare size={13} className="text-teal" />
+              <span>History Threads</span>
+            </div>
+            {isResearchCollapsed ? <ChevronRight size={13} /> : <ChevronDown size={13} />}
+          </button>
+          {!isResearchCollapsed && (
+            <div className={styles.historySubsection}>
+              <button className={styles.newChatBtn} onClick={handleNewResearch}>
+                <Plus size={13} />
+                <span>New Thread</span>
+              </button>
+              <div className={styles.sessionList}>
+                {researchSessions.length === 0 ? (
+                  <div className={styles.noHistory}><p>No history yet</p></div>
+                ) : (
+                  researchSessions.map((sess) => (
+                    <div
+                      key={sess.id}
+                      className={`${styles.sessionItem} ${sess.id === currentResearchSessionId ? styles.activeSessionItem : ''}`}
+                      onClick={() => {
+                        if (setCurrentResearchSessionId) setCurrentResearchSessionId(sess.id);
+                        if (window.innerWidth <= 768) onClose();
+                      }}
+                    >
+                      <div className={styles.sessionTitleWrapper}>
+                        <MessageSquare size={13} className={sess.id === currentResearchSessionId ? 'text-teal' : 'text-muted'} />
+                        <span className={styles.sessionTitle}>{sess.title}</span>
+                      </div>
+                      <button className={styles.deleteSessionBtn} onClick={(e) => handleDeleteResearch(sess.id, e)}>
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+    
+    if (itemId === 'chat') {
+      return (
+        <div className={styles.sidebarResearchHistory}>
+          <button className={styles.historyTabHeader} onClick={() => setIsChatCollapsed(!isChatCollapsed)}>
+            <div className={styles.historyTabTitle}>
+              <MessageSquare size={13} className="text-teal" />
+              <span>Chat History</span>
+            </div>
+            {isChatCollapsed ? <ChevronRight size={13} /> : <ChevronDown size={13} />}
+          </button>
+          {!isChatCollapsed && (
+            <div className={styles.historySubsection}>
+              <button className={styles.newChatBtn} onClick={handleNewChatAI}>
+                <Plus size={13} />
+                <span>New Chat</span>
+              </button>
+              <div className={styles.sessionList}>
+                {chatSessions.length === 0 ? (
+                  <div className={styles.noHistory}><p>No history yet</p></div>
+                ) : (
+                  chatSessions.map((sess) => (
+                    <div
+                      key={sess.id}
+                      className={`${styles.sessionItem} ${sess.id === currentChatSessionId ? styles.activeSessionItem : ''}`}
+                      onClick={() => {
+                        if (setCurrentChatSessionId) setCurrentChatSessionId(sess.id);
+                        if (window.innerWidth <= 768) onClose();
+                      }}
+                    >
+                      <div className={styles.sessionTitleWrapper}>
+                        <MessageSquare size={13} className={sess.id === currentChatSessionId ? 'text-teal' : 'text-muted'} />
+                        <span className={styles.sessionTitle}>{sess.title}</span>
+                      </div>
+                      <button className={styles.deleteSessionBtn} onClick={(e) => handleDeleteChat(sess.id, e)}>
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    if (itemId === 'summarize') {
+      return (
+        <div className={styles.sidebarResearchHistory}>
+          <button className={styles.historyTabHeader} onClick={() => setIsSummaryCollapsed(!isSummaryCollapsed)}>
+            <div className={styles.historyTabTitle}>
+              <FileText size={13} className="text-teal" />
+              <span>Saved Summaries</span>
+            </div>
+            {isSummaryCollapsed ? <ChevronRight size={13} /> : <ChevronDown size={13} />}
+          </button>
+          {!isSummaryCollapsed && (
+            <div className={styles.historySubsection}>
+              <button className={styles.newChatBtn} onClick={handleNewSummary}>
+                <Plus size={13} />
+                <span>New Summary</span>
+              </button>
+              <div className={styles.sessionList}>
+                {savedSummaries.length === 0 ? (
+                  <div className={styles.noHistory}><p>No summaries yet</p></div>
+                ) : (
+                  savedSummaries.map((sess) => (
+                    <div
+                      key={sess.id}
+                      className={`${styles.sessionItem} ${sess.id === activeSummaryId ? styles.activeSessionItem : ''}`}
+                      onClick={() => {
+                        if (setActiveSummaryId) setActiveSummaryId(sess.id);
+                        if (window.innerWidth <= 768) onClose();
+                      }}
+                    >
+                      <div className={styles.sessionTitleWrapper}>
+                        <FileText size={13} className={sess.id === activeSummaryId ? 'text-teal' : 'text-muted'} />
+                        <span className={styles.sessionTitle}>{sess.title}</span>
+                      </div>
+                      <button className={styles.deleteSessionBtn} onClick={(e) => handleDeleteSummary(sess.id, e)}>
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    if (itemId === 'explain') {
+      return (
+        <div className={styles.sidebarResearchHistory}>
+          <button className={styles.historyTabHeader} onClick={() => setIsExplainCollapsed(!isExplainCollapsed)}>
+            <div className={styles.historyTabTitle}>
+              <Sparkles size={13} className="text-teal" />
+              <span>Explanation History</span>
+            </div>
+            {isExplainCollapsed ? <ChevronRight size={13} /> : <ChevronDown size={13} />}
+          </button>
+          {!isExplainCollapsed && (
+            <div className={styles.historySubsection}>
+              <button className={styles.newChatBtn} onClick={handleNewExplanation}>
+                <Plus size={13} />
+                <span>New Explain</span>
+              </button>
+              <div className={styles.sessionList}>
+                {explanationHistory.length === 0 ? (
+                  <div className={styles.noHistory}><p>No explanations yet</p></div>
+                ) : (
+                  explanationHistory.map((sess) => (
+                    <div
+                      key={sess.id}
+                      className={`${styles.sessionItem} ${sess.id === activeExplanationId ? styles.activeSessionItem : ''}`}
+                      onClick={() => {
+                        if (setActiveExplanationId) setActiveExplanationId(sess.id);
+                        if (window.innerWidth <= 768) onClose();
+                      }}
+                    >
+                      <div className={styles.sessionTitleWrapper}>
+                        <Sparkles size={13} className={sess.id === activeExplanationId ? 'text-teal' : 'text-muted'} />
+                        <span className={styles.sessionTitle}>{sess.title}</span>
+                      </div>
+                      <button className={styles.deleteSessionBtn} onClick={(e) => handleDeleteExplanation(sess.id, e)}>
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    if (itemId === 'quiz') {
+      return (
+        <div className={styles.sidebarResearchHistory}>
+          <button className={styles.historyTabHeader} onClick={() => setIsQuizCollapsed(!isQuizCollapsed)}>
+            <div className={styles.historyTabTitle}>
+              <HelpCircle size={13} className="text-teal" />
+              <span>Quiz Attempts</span>
+            </div>
+            {isQuizCollapsed ? <ChevronRight size={13} /> : <ChevronDown size={13} />}
+          </button>
+          {!isQuizCollapsed && (
+            <div className={styles.historySubsection}>
+              <button className={styles.newChatBtn} onClick={handleNewQuiz}>
+                <Plus size={13} />
+                <span>New Quiz</span>
+              </button>
+              <div className={styles.sessionList}>
+                {quizHistory.length === 0 ? (
+                  <div className={styles.noHistory}><p>No attempts yet</p></div>
+                ) : (
+                  quizHistory.map((sess) => (
+                    <div
+                      key={sess.id}
+                      className={`${styles.sessionItem} ${sess.id === activeQuizAttemptId ? styles.activeSessionItem : ''}`}
+                      onClick={() => {
+                        if (setActiveQuizAttemptId) setActiveQuizAttemptId(sess.id);
+                        if (window.innerWidth <= 768) onClose();
+                      }}
+                    >
+                      <div className={styles.sessionTitleWrapper}>
+                        <Award size={13} className={sess.id === activeQuizAttemptId ? 'text-teal' : 'text-muted'} />
+                        <div className={styles.sessionMeta} style={{ display: 'flex', flexDirection: 'column' }}>
+                          <span className={styles.sessionTitle}>{sess.topic}</span>
+                          <span className={styles.sessionDate} style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                            Score: {sess.score}% ({sess.date})
+                          </span>
+                        </div>
+                      </div>
+                      <button className={styles.deleteSessionBtn} onClick={(e) => handleDeleteQuiz(sess.id, e)}>
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    return null;
+  };
 
   return (
     <>
@@ -142,14 +515,14 @@ export default function Sidebar({
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
-            const isResearch = item.id === 'research';
+            const isCollapsible = ['research', 'chat', 'summarize', 'explain', 'quiz'].includes(item.id);
 
             return (
               <div key={item.id} className={styles.navItemWrapper}>
                 <button
                   onClick={() => {
                     setActiveTab(item.id);
-                    if (!isResearch) onClose();
+                    if (!isCollapsible) onClose();
                   }}
                   className={`${styles.navItem} ${isActive ? styles.activeNavItem : ''}`}
                 >
@@ -157,69 +530,7 @@ export default function Sidebar({
                   <span>{item.label}</span>
                 </button>
 
-                {isResearch && isActive && (
-                  <div className={styles.sidebarResearchHistory}>
-                    {/* Collapsible history header inside main side menu */}
-                    <button 
-                      className={styles.historyTabHeader} 
-                      onClick={() => setIsHistoryCollapsed(!isHistoryCollapsed)}
-                      aria-expanded={!isHistoryCollapsed}
-                    >
-                      <div className={styles.historyTabTitle}>
-                        <MessageSquare size={13} className="text-teal" />
-                        <span>History Threads</span>
-                      </div>
-                      {isHistoryCollapsed ? <ChevronRight size={13} /> : <ChevronDown size={13} />}
-                    </button>
-
-                    {!isHistoryCollapsed && (
-                      <div className={styles.historySubsection}>
-                        <button className={styles.newChatBtn} onClick={handleNewChat}>
-                          <Plus size={13} />
-                          <span>New Thread</span>
-                        </button>
-
-                        <div className={styles.sessionList}>
-                          {researchSessions.length === 0 ? (
-                            <div className={styles.noHistory}>
-                              <p>No history yet</p>
-                            </div>
-                          ) : (
-                            researchSessions.map((sess) => {
-                              const isSessionActive = sess.id === currentResearchSessionId;
-                              return (
-                                <div
-                                  key={sess.id}
-                                  className={`${styles.sessionItem} ${isSessionActive ? styles.activeSessionItem : ''}`}
-                                  onClick={() => {
-                                    if (setCurrentResearchSessionId) setCurrentResearchSessionId(sess.id);
-                                    // Close sidebar drawer on mobile
-                                    if (window.innerWidth <= 768) {
-                                      onClose();
-                                    }
-                                  }}
-                                >
-                                  <div className={styles.sessionTitleWrapper}>
-                                    <MessageSquare size={13} className={isSessionActive ? 'text-teal' : 'text-muted'} />
-                                    <span className={styles.sessionTitle}>{sess.title}</span>
-                                  </div>
-                                  <button
-                                    className={styles.deleteSessionBtn}
-                                    onClick={(e) => handleDeleteSession(sess.id, e)}
-                                    title="Delete Research Thread"
-                                    aria-label="Delete Session"
-                                  >
-                                    <Trash2 size={12} />
-                                  </button>
-                                </div>
-                              );
-                            })
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
+                {isActive && renderHistorySubmenu(item.id)}
               </div>
             );
           })}

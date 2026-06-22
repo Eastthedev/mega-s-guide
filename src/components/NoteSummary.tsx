@@ -14,6 +14,10 @@ import styles from './NoteSummary.module.css';
 interface NoteSummaryProps {
   onAddToast: (message: string) => void;
   onJumpToTab: (tab: string, initialNotes?: string) => void;
+  savedSummaries: SavedSummary[];
+  activeId: string | null;
+  setSavedSummaries: React.Dispatch<React.SetStateAction<SavedSummary[]>>;
+  setActiveId: (id: string | null) => void;
 }
 
 const STYLE_OPTIONS = [
@@ -25,18 +29,20 @@ const STYLE_OPTIONS = [
 
 type SummaryStyle = typeof STYLE_OPTIONS[number]['key'];
 
-export default function NoteSummary({ onAddToast, onJumpToTab }: NoteSummaryProps) {
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+export default function NoteSummary({ 
+  onAddToast, 
+  onJumpToTab,
+  savedSummaries,
+  activeId,
+  setSavedSummaries,
+  setActiveId
+}: NoteSummaryProps) {
   const [notes, setNotes] = useState('');
   const [style, setStyle] = useState<SummaryStyle>('concise');
   const [summary, setSummary] = useState('');
   const [activeTitle, setActiveTitle] = useState('');
-  const [activeId, setActiveId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [copied, setCopied] = useState(false);
-
-  // Sidebar saved sessions
-  const [savedSummaries, setSavedSummaries] = useState<SavedSummary[]>([]);
   const [isParsing, setIsParsing] = useState(false);
 
   const mainRef = useRef<HTMLDivElement>(null);
@@ -64,15 +70,29 @@ export default function NoteSummary({ onAddToast, onJumpToTab }: NoteSummaryProp
     }
   };
 
-  // Load saved summaries + pre-fill from study context
+  // Load saved summaries helper for internal actions
   const loadSavedSummaries = async () => {
     const remote = await getNoteSummaries();
     setSavedSummaries(remote);
   };
 
+  // Sync state whenever activeId or savedSummaries changes
   useEffect(() => {
-    loadSavedSummaries();
-  }, []);
+    if (activeId) {
+      const activeItem = savedSummaries.find(s => s.id === activeId);
+      if (activeItem) {
+        setNotes(activeItem.originalNotes);
+        setSummary(activeItem.summaryText);
+        setStyle(activeItem.style as SummaryStyle);
+        setActiveTitle(activeItem.title);
+        localStorage.setItem('megas_guide_study_context', activeItem.originalNotes);
+      }
+    } else {
+      setNotes('');
+      setSummary('');
+      setActiveTitle('');
+    }
+  }, [activeId, savedSummaries]);
 
   const buildTitle = (text: string) => {
     const raw = text.trim().split('\n')[0].substring(0, 40) || 'Summary';
@@ -156,34 +176,7 @@ export default function NoteSummary({ onAddToast, onJumpToTab }: NoteSummaryProp
   };
 
   const handleNewSummary = () => {
-    setIsHistoryOpen(false);
-    setNotes('');
-    setSummary('');
     setActiveId(null);
-    setActiveTitle('');
-  };
-
-  const handleLoadSummary = (item: SavedSummary) => {
-    setIsHistoryOpen(false);
-    setNotes(item.originalNotes);
-    setSummary(item.summaryText);
-    setStyle(item.style as SummaryStyle);
-    setActiveId(item.id);
-    setActiveTitle(item.title);
-    localStorage.setItem('megas_guide_study_context', item.originalNotes);
-    onAddToast(`Loaded: "${item.title}"`);
-
-    setTimeout(() => {
-      mainRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-    }, 50);
-  };
-
-  const handleDeleteSummary = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    await deleteNoteSummary(id);
-    await loadSavedSummaries();
-    if (activeId === id) handleNewSummary();
-    onAddToast('Summary deleted. 🧹');
   };
 
   const handleCopyToClipboard = () => {
@@ -205,76 +198,8 @@ export default function NoteSummary({ onAddToast, onJumpToTab }: NoteSummaryProp
 
   return (
     <div className={styles.wrapper}>
-      {/* Mobile Backdrop Overlay */}
-      {isHistoryOpen && (
-        <div className={styles.sidebarOverlay} onClick={() => setIsHistoryOpen(false)} />
-      )}
-
-      {/* ============ SIDEBAR ============ */}
-      <aside className={`${styles.sidebar} ${isHistoryOpen ? styles.sidebarOpen : ''}`}>
-        <div className={styles.sidebarMobileHeader}>
-          <span>Summary History</span>
-          <button className={styles.closeSidebarBtn} onClick={() => setIsHistoryOpen(false)}>
-            <CloseIcon size={18} />
-          </button>
-        </div>
-
-        <button className={styles.newSummaryBtn} onClick={handleNewSummary}>
-          <Plus size={16} />
-          <span>New Summary</span>
-        </button>
-
-        <span className={styles.sidebarSectionTitle}>Summary History</span>
-
-        <div className={styles.sessionList}>
-          {savedSummaries.length === 0 ? (
-            <div className={styles.noHistory}>
-              <FolderHeart size={22} strokeWidth={1.5} />
-              <p>No saved summaries yet</p>
-            </div>
-          ) : (
-            savedSummaries.map((item) => {
-              const isActive = item.id === activeId;
-              return (
-                <div
-                  key={item.id}
-                  className={`${styles.sessionItem} ${isActive ? styles.activeSessionItem : ''}`}
-                  onClick={() => handleLoadSummary(item)}
-                >
-                  <div className={styles.sessionTitleWrapper}>
-                    <FileText size={13} />
-                    <div className={styles.sessionMeta}>
-                      <span className={styles.sessionTitle}>{item.title}</span>
-                      <span className={styles.sessionDate}>{item.date} · {item.style}</span>
-                    </div>
-                  </div>
-                  <button
-                    className={styles.deleteSessionBtn}
-                    onClick={(e) => handleDeleteSummary(item.id, e)}
-                    title="Delete summary"
-                    aria-label="Delete summary"
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                </div>
-              );
-            })
-          )}
-        </div>
-      </aside>
-
       {/* ============ MAIN AREA ============ */}
       <div className={styles.content} ref={mainRef}>
-        {/* Mobile History Toggle Bar */}
-        <div className={styles.mobileHistoryBar}>
-          <button className={styles.mobileHistoryBtn} onClick={() => setIsHistoryOpen(true)}>
-            <FileText size={15} />
-            <span>Summary History</span>
-          </button>
-          <span className={styles.mobileActiveTitle}>
-            {activeTitle || 'New Summary'}
-          </span>
-        </div>
 
         {/* Input Card */}
         <div className={styles.inputCard}>

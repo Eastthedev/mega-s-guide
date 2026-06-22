@@ -9,6 +9,10 @@ import styles from './DetailedExplanation.module.css';
 
 interface DetailedExplanationProps {
   onAddToast: (message: string) => void;
+  explanationHistory: ExplanationItem[];
+  activeId: string | null;
+  setExplanationHistory: React.Dispatch<React.SetStateAction<ExplanationItem[]>>;
+  setActiveId: (id: string | null) => void;
 }
 
 type Mode = 'topic' | 'passage';
@@ -145,19 +149,22 @@ function InteractiveViewer({ type, content, title = "Visual Guide" }: Interactiv
   );
 }
 
-export default function DetailedExplanation({ onAddToast }: DetailedExplanationProps) {
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+export default function DetailedExplanation({ 
+  onAddToast,
+  explanationHistory,
+  activeId,
+  setExplanationHistory,
+  setActiveId
+}: DetailedExplanationProps) {
   const [mode, setMode] = useState<Mode>('topic');
   const [input, setInput] = useState('');
   const [depth, setDepth] = useState<Depth>('standard');
   const [explanation, setExplanation] = useState('');
-  const [activeId, setActiveId] = useState<string | null>(null);
   const [activeTitle, setActiveTitle] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isParsing, setIsParsing] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const [history, setHistory] = useState<ExplanationItem[]>([]);
   const mainRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -185,12 +192,26 @@ export default function DetailedExplanation({ onAddToast }: DetailedExplanationP
 
   const loadHistory = async () => {
     const items = await getExplanationHistory();
-    setHistory(items);
+    setExplanationHistory(items);
   };
 
+  // Sync state whenever activeId or explanationHistory changes
   useEffect(() => {
-    loadHistory();
-  }, []);
+    if (activeId) {
+      const activeItem = explanationHistory.find(s => s.id === activeId);
+      if (activeItem) {
+        setMode(activeItem.mode);
+        setInput(activeItem.input);
+        setDepth(activeItem.depth);
+        setExplanation(activeItem.explanationText);
+        setActiveTitle(activeItem.title);
+      }
+    } else {
+      setInput('');
+      setExplanation('');
+      setActiveTitle('');
+    }
+  }, [activeId, explanationHistory]);
 
   const buildTitle = (text: string, m: Mode) => {
     if (m === 'topic') return text.trim().substring(0, 50) || 'Explanation';
@@ -200,7 +221,6 @@ export default function DetailedExplanation({ onAddToast }: DetailedExplanationP
   const handleExplain = async () => {
     if (!input.trim()) return;
 
-    setIsHistoryOpen(false);
     setIsLoading(true);
     setExplanation('');
 
@@ -243,34 +263,8 @@ export default function DetailedExplanation({ onAddToast }: DetailedExplanationP
     }
   };
 
-  const handleLoadItem = (item: ExplanationItem) => {
-    setIsHistoryOpen(false);
-    setMode(item.mode);
-    setInput(item.input);
-    setDepth(item.depth);
-    setExplanation(item.explanationText);
-    setActiveId(item.id);
-    setActiveTitle(item.title);
-    onAddToast(`Loaded: "${item.title}"`);
-    setTimeout(() => {
-      mainRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-    }, 50);
-  };
-
-  const handleDeleteItem = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    await deleteExplanation(id);
-    await loadHistory();
-    if (activeId === id) handleNewExplanation();
-    onAddToast('Explanation deleted. 🧹');
-  };
-
   const handleNewExplanation = () => {
-    setIsHistoryOpen(false);
-    setInput('');
-    setExplanation('');
     setActiveId(null);
-    setActiveTitle('');
   };
 
   const handleCopyToClipboard = () => {
@@ -349,77 +343,8 @@ export default function DetailedExplanation({ onAddToast }: DetailedExplanationP
 
   return (
     <div className={styles.wrapper}>
-      {/* Mobile Backdrop Overlay */}
-      {isHistoryOpen && (
-        <div className={styles.sidebarOverlay} onClick={() => setIsHistoryOpen(false)} />
-      )}
-
-      {/* ========== SIDEBAR ========== */}
-      <aside className={`${styles.sidebar} ${isHistoryOpen ? styles.sidebarOpen : ''}`}>
-        <div className={styles.sidebarMobileHeader}>
-          <span>Explanation History</span>
-          <button className={styles.closeSidebarBtn} onClick={() => setIsHistoryOpen(false)}>
-            <CloseIcon size={18} />
-          </button>
-        </div>
-
-        <button className={styles.newExplainBtn} onClick={handleNewExplanation}>
-          <Plus size={16} />
-          <span>New Explanation</span>
-        </button>
-
-        <span className={styles.sidebarSectionTitle}>Explanation History</span>
-
-        <div className={styles.historyList}>
-          {history.length === 0 ? (
-            <div className={styles.noHistory}>
-              <Brain size={22} strokeWidth={1.5} />
-              <p>No saved explanations yet</p>
-            </div>
-          ) : (
-            history.map((item) => {
-              const isActive = item.id === activeId;
-              return (
-                <div
-                  key={item.id}
-                  className={`${styles.historyItem} ${isActive ? styles.activeHistoryItem : ''}`}
-                  onClick={() => handleLoadItem(item)}
-                >
-                  <div className={styles.historyMain}>
-                    <FileText size={12} style={{ flexShrink: 0 }} />
-                    <div className={styles.historyMeta}>
-                      <span className={styles.historyTitle}>{item.title}</span>
-                      <span className={styles.historyModeDepth}>
-                        {item.mode === 'topic' ? '📌 Topic' : '📄 Passage'} · {depthLabel[item.depth]}
-                      </span>
-                    </div>
-                  </div>
-                  <button
-                    className={styles.deleteHistoryBtn}
-                    onClick={(e) => handleDeleteItem(item.id, e)}
-                    title="Delete"
-                  >
-                    <Trash2 size={12} />
-                  </button>
-                </div>
-              );
-            })
-          )}
-        </div>
-      </aside>
-
       {/* ========== MAIN CONTENT ========== */}
       <div className={styles.content} ref={mainRef}>
-        {/* Mobile History Toggle Bar */}
-        <div className={styles.mobileHistoryBar}>
-          <button className={styles.mobileHistoryBtn} onClick={() => setIsHistoryOpen(true)}>
-            <Brain size={15} />
-            <span>Explain History</span>
-          </button>
-          <span className={styles.mobileActiveTitle}>
-            {activeTitle || 'New Explanation'}
-          </span>
-        </div>
         {/* Input Card */}
         <div className={styles.inputCard}>
           {activeTitle && (

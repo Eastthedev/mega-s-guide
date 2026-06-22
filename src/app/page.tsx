@@ -22,7 +22,11 @@ import LoveButton from '../components/LoveButton';
 import ResearchTab from '../components/ResearchTab';
 import AuthScreen from '../components/AuthScreen';
 import MnemonicsTab from '../components/MnemonicsTab';
-import { getUserStats, syncUserStats, supabase, getResearchSessions, ResearchSession } from '../utils/supabase';
+import { 
+  getUserStats, syncUserStats, supabase, getResearchSessions, ResearchSession,
+  getChatSessions, ChatSession, getNoteSummaries, SavedSummary,
+  getExplanationHistory, ExplanationItem, getQuizHistory, QuizAttempt
+} from '../utils/supabase';
 
 interface Toast {
   id: string;
@@ -42,23 +46,61 @@ export default function Home() {
   const [researchSessions, setResearchSessions] = useState<ResearchSession[]>([]);
   const [currentResearchSessionId, setCurrentResearchSessionId] = useState<string>('');
 
-  // Load research sessions on auth state change
+  // AI Chat history shared states
+  const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
+  const [currentChatSessionId, setCurrentChatSessionId] = useState<string>('');
+
+  // Summarize (Note Summary) history shared states
+  const [savedSummaries, setSavedSummaries] = useState<SavedSummary[]>([]);
+  const [activeSummaryId, setActiveSummaryId] = useState<string | null>(null);
+
+  // Explain (Detailed Explanation) history shared states
+  const [explanationHistory, setExplanationHistory] = useState<ExplanationItem[]>([]);
+  const [activeExplanationId, setActiveExplanationId] = useState<string | null>(null);
+
+  // Quiz Mode history shared states
+  const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
+  const [activeQuizAttemptId, setActiveQuizAttemptId] = useState<string | null>(null);
+
+  // Load all history items on auth state change
   useEffect(() => {
     if (!user) return;
-    const loadSessions = async () => {
+    const loadAllHistory = async () => {
       try {
-        const fetchedSessions = await getResearchSessions();
-        setResearchSessions(fetchedSessions);
-        if (fetchedSessions.length > 0) {
-          setCurrentResearchSessionId(fetchedSessions[0].id);
+        // Load Research
+        const resSessions = await getResearchSessions();
+        setResearchSessions(resSessions);
+        if (resSessions.length > 0) {
+          setCurrentResearchSessionId(resSessions[0].id);
         } else {
           setCurrentResearchSessionId('res_' + Math.random().toString(36).substring(2, 15));
         }
+
+        // Load AI Chat
+        const chatSess = await getChatSessions();
+        setChatSessions(chatSess);
+        if (chatSess.length > 0) {
+          setCurrentChatSessionId(chatSess[0].id);
+        } else {
+          setCurrentChatSessionId('chat_' + Math.random().toString(36).substring(2, 15));
+        }
+
+        // Load Note Summaries
+        const summaries = await getNoteSummaries();
+        setSavedSummaries(summaries);
+        
+        // Load Explanations
+        const explanations = await getExplanationHistory();
+        setExplanationHistory(explanations);
+
+        // Load Quiz attempts
+        const quizzes = await getQuizHistory();
+        setQuizHistory(quizzes || []);
       } catch (err) {
-        console.error("Failed to load research sessions on mount:", err);
+        console.error("Failed to load history items on mount:", err);
       }
     };
-    loadSessions();
+    loadAllHistory();
   }, [user]);
 
   // Monitor auth state changes
@@ -333,17 +375,51 @@ export default function Home() {
       case 'overview':
         return <Overview setActiveTab={handleJumpToTab} onAddToast={addToast} />;
       case 'chat':
-        return <AIChat onAddToast={addToast} />;
+        return (
+          <AIChat 
+            onAddToast={addToast} 
+            sessions={chatSessions}
+            currentSessionId={currentChatSessionId}
+            setSessions={setChatSessions}
+            setCurrentSessionId={setCurrentChatSessionId}
+          />
+        );
       case 'summarize':
-        return <NoteSummary onAddToast={addToast} onJumpToTab={handleJumpToTab} />;
+        return (
+          <NoteSummary 
+            onAddToast={addToast} 
+            onJumpToTab={handleJumpToTab} 
+            savedSummaries={savedSummaries}
+            activeId={activeSummaryId}
+            setSavedSummaries={setSavedSummaries}
+            setActiveId={setActiveSummaryId}
+          />
+        );
       case 'explain':
-        return <DetailedExplanation onAddToast={addToast} />;
+        return (
+          <DetailedExplanation 
+            onAddToast={addToast} 
+            explanationHistory={explanationHistory}
+            activeId={activeExplanationId}
+            setExplanationHistory={setExplanationHistory}
+            setActiveId={setActiveExplanationId}
+          />
+        );
       case 'mnemonics':
         return <MnemonicsTab onAddToast={addToast} />;
       case 'flashcards':
         return <Flashcards onAddToast={addToast} initialNotes={jumpNotes} />;
       case 'quiz':
-        return <QuizMode onAddToast={addToast} initialNotes={jumpNotes} />;
+        return (
+          <QuizMode 
+            onAddToast={addToast} 
+            initialNotes={jumpNotes}
+            quizHistory={quizHistory}
+            setQuizHistory={setQuizHistory}
+            activeQuizAttemptId={activeQuizAttemptId}
+            setActiveQuizAttemptId={setActiveQuizAttemptId}
+          />
+        );
       case 'research':
         return (
           <ResearchTab 
@@ -715,11 +791,32 @@ export default function Home() {
             setActiveTab={setActiveTab}
             isOpen={sidebarOpen}
             onClose={() => setSidebarOpen(false)}
+            onAddToast={addToast}
+            // Research history props
             researchSessions={researchSessions}
             currentResearchSessionId={currentResearchSessionId}
             setResearchSessions={setResearchSessions}
             setCurrentResearchSessionId={setCurrentResearchSessionId}
-            onAddToast={addToast}
+            // AI Chat history props
+            chatSessions={chatSessions}
+            currentChatSessionId={currentChatSessionId}
+            setChatSessions={setChatSessions}
+            setCurrentChatSessionId={setCurrentChatSessionId}
+            // Note Summary history props
+            savedSummaries={savedSummaries}
+            activeSummaryId={activeSummaryId}
+            setSavedSummaries={setSavedSummaries}
+            setActiveSummaryId={setActiveSummaryId}
+            // Detailed Explanation history props
+            explanationHistory={explanationHistory}
+            activeExplanationId={activeExplanationId}
+            setExplanationHistory={setExplanationHistory}
+            setActiveExplanationId={setActiveExplanationId}
+            // Quiz Mode history props
+            quizHistory={quizHistory}
+            setQuizHistory={setQuizHistory}
+            activeQuizAttemptId={activeQuizAttemptId}
+            setActiveQuizAttemptId={setActiveQuizAttemptId}
           />
 
           <div className={styles.mainContent}>

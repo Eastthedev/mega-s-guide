@@ -16,6 +16,10 @@ import styles from './AIChat.module.css';
 
 interface AIChatProps {
   onAddToast: (message: string) => void;
+  sessions: ChatSession[];
+  currentSessionId: string;
+  setSessions: React.Dispatch<React.SetStateAction<ChatSession[]>>;
+  setCurrentSessionId: (id: string) => void;
 }
 
 interface InteractiveViewerProps {
@@ -149,10 +153,13 @@ function InteractiveViewer({ type, content, title = "Visual Guide" }: Interactiv
   );
 }
 
-export default function AIChat({ onAddToast }: AIChatProps) {
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const [sessions, setSessions] = useState<ChatSession[]>([]);
-  const [currentSessionId, setCurrentSessionId] = useState<string>('');
+export default function AIChat({ 
+  onAddToast, 
+  sessions, 
+  currentSessionId, 
+  setSessions, 
+  setCurrentSessionId 
+}: AIChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [context, setContext] = useState('');
@@ -167,35 +174,29 @@ export default function AIChat({ onAddToast }: AIChatProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const contextFileInputRef = useRef<HTMLInputElement>(null);
 
-  // Helper to generate a new session ID
-  const generateSessionId = () => 'sess_' + Math.random().toString(36).substring(2, 15);
-
   // Start with context panel expanded so Baby can paste fresh notes
   useEffect(() => {
     setIsContextCollapsed(false);
   }, []);
 
-  // Load chat sessions from database
+  // Load chat messages dynamically based on currentSessionId
   useEffect(() => {
-    const loadSessions = async () => {
-      const fetchedSessions = await getChatSessions();
-      setSessions(fetchedSessions);
+    if (!currentSessionId) return;
 
-      if (fetchedSessions.length > 0) {
-        // Select the most recent session
-        const firstSession = fetchedSessions[0];
-        setCurrentSessionId(firstSession.id);
-        const msgs = await getChatMessages(firstSession.id);
+    const loadMessages = async () => {
+      setIsLoading(true);
+      try {
+        const msgs = await getChatMessages(currentSessionId);
         setMessages(msgs);
-      } else {
-        // Start a fresh session
-        const newSessId = generateSessionId();
-        setCurrentSessionId(newSessId);
-        setMessages([]);
+      } catch (err) {
+        console.error("Failed to load chat history:", err);
+        onAddToast("Failed to load chat history. 💙");
+      } finally {
+        setIsLoading(false);
       }
     };
-    loadSessions();
-  }, []);
+    loadMessages();
+  }, [currentSessionId]);
 
   // Scroll to bottom when messages update
   useEffect(() => {
@@ -290,58 +291,7 @@ export default function AIChat({ onAddToast }: AIChatProps) {
     }
   };
 
-  // Switch chat sessions
-  const handleSelectSession = async (sessionId: string) => {
-    setIsHistoryOpen(false);
-    if (sessionId === currentSessionId) return;
-    setIsLoading(true);
-    setCurrentSessionId(sessionId);
-    try {
-      const msgs = await getChatMessages(sessionId);
-      setMessages(msgs);
-    } catch (err) {
-      console.error(err);
-      onAddToast("Failed to load chat history. 💙");
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
-  // Start new clean chat session
-  const handleNewChat = () => {
-    setIsHistoryOpen(false);
-    const newSessId = generateSessionId();
-    setCurrentSessionId(newSessId);
-    setMessages([]);
-    onAddToast("Started a new chat session! 🩺");
-  };
-
-  // Delete a chat session
-  const handleDeleteSession = async (sessionId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    try {
-      await deleteChatSession(sessionId);
-      const updatedSessions = sessions.filter(s => s.id !== sessionId);
-      setSessions(updatedSessions);
-      onAddToast("Chat session deleted. 🧹");
-
-      if (currentSessionId === sessionId) {
-        if (updatedSessions.length > 0) {
-          setCurrentSessionId(updatedSessions[0].id);
-          const msgs = await getChatMessages(updatedSessions[0].id);
-          setMessages(msgs);
-        } else {
-          // Generate fresh session
-          const newSessId = generateSessionId();
-          setCurrentSessionId(newSessId);
-          setMessages([]);
-        }
-      }
-    } catch (err) {
-      console.error("Failed to delete chat session:", err);
-      onAddToast("Error deleting session. 💙");
-    }
-  };
 
   const handleSendMessage = async (textToSend: string) => {
     if (!textToSend.trim() && !attachedFile) return;
@@ -479,70 +429,8 @@ export default function AIChat({ onAddToast }: AIChatProps) {
 
   return (
     <div className={styles.chatWrapper}>
-      {/* Mobile Backdrop Overlay */}
-      {isHistoryOpen && (
-        <div className={styles.sidebarOverlay} onClick={() => setIsHistoryOpen(false)} />
-      )}
-
-      {/* ChatGPT-style Sidebar */}
-      <div className={`${styles.chatSidebar} ${isHistoryOpen ? styles.sidebarOpen : ''}`}>
-        <div className={styles.sidebarMobileHeader}>
-          <span>Chat History</span>
-          <button className={styles.closeSidebarBtn} onClick={() => setIsHistoryOpen(false)}>
-            <X size={18} />
-          </button>
-        </div>
-
-        <button className={styles.newChatBtn} onClick={handleNewChat}>
-          <Plus size={16} />
-          <span>New Chat</span>
-        </button>
-
-        <div className={styles.sessionList}>
-          {sessions.length === 0 ? (
-            <div className={styles.noHistory}>
-              <p>No history yet</p>
-            </div>
-          ) : (
-            sessions.map((sess) => {
-              const isActive = sess.id === currentSessionId;
-              return (
-                <div
-                  key={sess.id}
-                  className={`${styles.sessionItem} ${isActive ? styles.activeSessionItem : ''}`}
-                  onClick={() => handleSelectSession(sess.id)}
-                >
-                  <div className={styles.sessionTitleWrapper}>
-                    <MessageSquare size={14} className={isActive ? 'text-teal' : 'text-muted'} />
-                    <span className={styles.sessionTitle}>{sess.title}</span>
-                  </div>
-                  <button
-                    className={styles.deleteSessionBtn}
-                    onClick={(e) => handleDeleteSession(sess.id, e)}
-                    title="Delete Chat Thread"
-                    aria-label="Delete Session"
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                </div>
-              );
-            })
-          )}
-        </div>
-      </div>
-
       {/* Main Chat Area */}
       <div className={styles.chatContent}>
-        {/* Mobile History Toggle Bar */}
-        <div className={styles.mobileHistoryBar}>
-          <button className={styles.mobileHistoryBtn} onClick={() => setIsHistoryOpen(true)}>
-            <MessageSquare size={15} />
-            <span>Chat History</span>
-          </button>
-          <span className={styles.mobileActiveTitle}>
-            {sessions.find(s => s.id === currentSessionId)?.title || 'New Chat'}
-          </span>
-        </div>
 
         {/* Set Study Context Panel */}
         <div className={styles.contextPanel}>

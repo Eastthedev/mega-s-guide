@@ -14,6 +14,10 @@ import styles from './QuizMode.module.css';
 interface QuizModeProps {
   onAddToast: (message: string) => void;
   initialNotes?: string;
+  quizHistory: QuizAttempt[];
+  setQuizHistory: React.Dispatch<React.SetStateAction<QuizAttempt[]>>;
+  activeQuizAttemptId: string | null;
+  setActiveQuizAttemptId: (id: string | null) => void;
 }
 
 interface MissedQuestion {
@@ -29,8 +33,14 @@ const scoreColor = (pct: number) => {
   return styles.scoreBadgeRed;
 };
 
-export default function QuizMode({ onAddToast, initialNotes }: QuizModeProps) {
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+export default function QuizMode({ 
+  onAddToast, 
+  initialNotes,
+  quizHistory,
+  setQuizHistory,
+  activeQuizAttemptId,
+  setActiveQuizAttemptId
+}: QuizModeProps) {
   const [reviewAttempt, setReviewAttempt] = useState<QuizAttempt | null>(null);
   const [notes, setNotes] = useState('');
   const [count, setCount] = useState<number>(5);
@@ -74,7 +84,6 @@ export default function QuizMode({ onAddToast, initialNotes }: QuizModeProps) {
   const [missedQuestions, setMissedQuestions] = useState<MissedQuestion[]>([]);
   const [showMissedList, setShowMissedList] = useState(false);
   const [personalBest, setPersonalBest] = useState<number | null>(null);
-  const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
 
   const loadHistory = async () => {
     const history = await getQuizHistory();
@@ -82,12 +91,22 @@ export default function QuizMode({ onAddToast, initialNotes }: QuizModeProps) {
   };
 
   useEffect(() => {
+    if (activeQuizAttemptId) {
+      const attempt = quizHistory.find(q => q.id === activeQuizAttemptId);
+      if (attempt) {
+        setReviewAttempt(attempt);
+      }
+    } else {
+      setReviewAttempt(null);
+    }
+  }, [activeQuizAttemptId, quizHistory]);
+
+  useEffect(() => {
     if (initialNotes) {
       setNotes(initialNotes);
     }
     const pb = localStorage.getItem('megas_guide_quiz_pb');
     if (pb !== null) setPersonalBest(parseInt(pb, 10));
-    loadHistory();
   }, [initialNotes]);
 
   const buildTopic = (text: string) =>
@@ -97,7 +116,6 @@ export default function QuizMode({ onAddToast, initialNotes }: QuizModeProps) {
     if (!notes.trim()) return;
 
     setReviewAttempt(null);
-    setIsHistoryOpen(false);
     setIsLoading(true);
     setQuestions([]);
     setCurrentQIndex(0);
@@ -220,7 +238,6 @@ export default function QuizMode({ onAddToast, initialNotes }: QuizModeProps) {
 
   const handleReplayAttempt = (attempt: QuizAttempt) => {
     setReviewAttempt(null);
-    setIsHistoryOpen(false);
     setNotes(attempt.originalNotes || '');
     setCurrentTopic(buildTopic(attempt.originalNotes || ''));
     setQuestions(attempt.questions || []);
@@ -233,9 +250,21 @@ export default function QuizMode({ onAddToast, initialNotes }: QuizModeProps) {
     onAddToast("Quiz reloaded — let's beat that score! 🎓✨");
   };
 
+  const handleNewQuiz = () => {
+    setActiveQuizAttemptId(null);
+    setReviewAttempt(null);
+    setQuestions([]);
+    setCurrentQIndex(0);
+    setSelectedOption(null);
+    setScore(0);
+    setIsAnswered(false);
+    setIsCompleted(false);
+    setMissedQuestions([]);
+    setCurrentTopic('');
+  };
+
   const handleSelectAttempt = (attempt: QuizAttempt) => {
     setReviewAttempt(attempt);
-    setIsHistoryOpen(false);
     onAddToast(`Reviewing attempt from ${attempt.date}! 📊`);
   };
 
@@ -255,7 +284,13 @@ export default function QuizMode({ onAddToast, initialNotes }: QuizModeProps) {
             <span className={`${styles.scoreBadge} ${scoreColor(pct)}`}>
               Score: {reviewAttempt.score}/{reviewAttempt.totalQuestions} ({pct}%)
             </span>
-            <button className={styles.exitReviewBtn} onClick={() => setReviewAttempt(null)}>
+            <button 
+              className={styles.exitReviewBtn} 
+              onClick={() => {
+                setReviewAttempt(null);
+                setActiveQuizAttemptId(null);
+              }}
+            >
               Exit Review
             </button>
           </div>
@@ -342,26 +377,6 @@ export default function QuizMode({ onAddToast, initialNotes }: QuizModeProps) {
     );
   };
 
-  const handleDeleteAttempt = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    await deleteQuizAttempt(id);
-    await loadHistory();
-    onAddToast('Quiz attempt removed. 🧹');
-  };
-
-  const handleNewQuiz = () => {
-    setReviewAttempt(null);
-    setIsHistoryOpen(false);
-    setQuestions([]);
-    setCurrentQIndex(0);
-    setSelectedOption(null);
-    setScore(0);
-    setIsAnswered(false);
-    setIsCompleted(false);
-    setMissedQuestions([]);
-    setCurrentTopic('');
-  };
-
   const handleUseContextNotes = () => {
     const ctx = localStorage.getItem('megas_guide_study_context') || '';
     if (ctx) { setNotes(ctx); onAddToast('Pre-filled notes from study context! 📚'); }
@@ -384,74 +399,9 @@ export default function QuizMode({ onAddToast, initialNotes }: QuizModeProps) {
 
   return (
     <div className={styles.wrapper}>
-      {/* Mobile Backdrop Overlay */}
-      {isHistoryOpen && (
-        <div className={styles.sidebarOverlay} onClick={() => setIsHistoryOpen(false)} />
-      )}
-
-      {/* ========== SIDEBAR ========== */}
-      <aside className={`${styles.sidebar} ${isHistoryOpen ? styles.sidebarOpen : ''}`}>
-        <div className={styles.sidebarMobileHeader}>
-          <span>Quiz History</span>
-          <button className={styles.closeSidebarBtn} onClick={() => setIsHistoryOpen(false)}>
-            <CloseIcon size={18} />
-          </button>
-        </div>
-
-        <button className={styles.newQuizBtn} onClick={handleNewQuiz}>
-          <Plus size={16} />
-          <span>New Quiz</span>
-        </button>
-
-        <span className={styles.sidebarSectionTitle}>Quiz History</span>
-
-        <div className={styles.historyList}>
-          {quizHistory.length === 0 ? (
-            <div className={styles.noHistory}>
-              <BarChart2 size={22} strokeWidth={1.5} />
-              <p>Complete a quiz to see history</p>
-            </div>
-          ) : (
-            quizHistory.map((attempt) => {
-              const pct = Math.round((attempt.score / attempt.totalQuestions) * 100);
-              const topic = buildTopic(attempt.originalNotes || '');
-              return (
-                <div
-                  key={attempt.id}
-                  className={styles.historyItem}
-                  onClick={() => handleSelectAttempt(attempt)}
-                >
-                  <div className={styles.historyItemMain}>
-                    <span className={styles.historyTopic}>{topic}</span>
-                    <span className={styles.historyDate}>{attempt.date}</span>
-                  </div>
-                  <div className={styles.historyItemRight}>
-                    <span className={`${styles.scoreBadge} ${scoreColor(pct)}`}>
-                      {pct}%
-                    </span>
-                    <button
-                      className={styles.deleteHistoryBtn}
-                      onClick={(e) => handleDeleteAttempt(attempt.id, e)}
-                      title="Remove attempt"
-                    >
-                      <Trash2 size={12} />
-                    </button>
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-      </aside>
-
       {/* ========== MAIN CONTENT ========== */}
       <div className={styles.content}>
-        {/* Mobile History Toggle Bar */}
         <div className={styles.mobileHistoryBar}>
-          <button className={styles.mobileHistoryBtn} onClick={() => setIsHistoryOpen(true)}>
-            <BarChart2 size={15} />
-            <span>Quiz History</span>
-          </button>
           <span className={styles.mobileActiveTitle}>
             {reviewAttempt 
               ? `Review: ${buildTopic(reviewAttempt.originalNotes)}` 
