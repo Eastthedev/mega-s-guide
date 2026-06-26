@@ -175,7 +175,7 @@ export default function TopBar({ currentSection, onToggleSidebar, onAddToast, hi
                 className={styles.input} 
                 value={apiKey} 
                 onChange={(e) => setApiKey(e.target.value)} 
-                placeholder="Enter Gemini API Key (starts with AIzaSy...)"
+                placeholder="Enter Gemini API Key (starts with AIzaSy or AQ...)"
               />
             </div>
 

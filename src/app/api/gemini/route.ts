@@ -1,7 +1,7 @@
 import type { NextRequest } from 'next/server';
 
 const DEFAULT_API_KEY = process.env.GEMINI_API_KEY || '';
-const MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest'];
+const MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.5-flash', 'gemini-flash-latest'];
 
 export async function POST(request: NextRequest) {
   try {
