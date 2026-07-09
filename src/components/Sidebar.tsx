@@ -244,6 +244,7 @@ export default function Sidebar({
 
   const navItems = [
     { id: 'overview', label: 'Dashboard', icon: Home },
+    { id: 'keepingup', label: 'Keeping up', icon: Heart },
     { id: 'chat', label: 'AI Chat', icon: MessageSquare },
     { id: 'summarize', label: 'Summarize', icon: FileText },
     { id: 'explain', label: 'Explain', icon: Sparkles },

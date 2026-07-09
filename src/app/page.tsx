@@ -24,6 +24,7 @@ import AuthScreen from '../components/AuthScreen';
 import MnemonicsTab from '../components/MnemonicsTab';
 import LockinTab from '../components/LockinTab';
 import ImportantMessageModal from '../components/ImportantMessageModal';
+import KeepingUpTab from '../components/KeepingUpTab';
 import { 
   getUserStats, syncUserStats, supabase, getResearchSessions, ResearchSession,
   getChatSessions, ChatSession, getNoteSummaries, SavedSummary,
@@ -435,6 +436,8 @@ export default function Home() {
     switch (activeTab) {
       case 'overview':
         return <Overview setActiveTab={handleJumpToTab} onAddToast={addToast} />;
+      case 'keepingup':
+        return <KeepingUpTab />;
       case 'chat':
         return (
           <AIChat 
