@@ -45,15 +45,8 @@ export default function Home() {
   const [user, setUser] = useState<any>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
-  // Popup Modal state and refs
+  // Popup Modal state
   const [showLetterPopup, setShowLetterPopup] = useState(false);
-  const allowNextClickRef = useRef(false);
-  const modalOpenRef = useRef(false);
-
-  // Keep modalOpenRef in sync with showLetterPopup state
-  useEffect(() => {
-    modalOpenRef.current = showLetterPopup;
-  }, [showLetterPopup]);
 
   // Automatically show the popup when the study view mounts or user logs in
   useEffect(() => {
@@ -62,46 +55,8 @@ export default function Home() {
     }
   }, [view, user]);
 
-  // Intercept all clicks when in the study guide and logged in
-  useEffect(() => {
-    if (view !== 'study' || !user) return;
-
-    const handleCaptureClick = (e: MouseEvent) => {
-      const modalElement = document.getElementById('important-message-modal');
-      
-      // Allow click events inside the modal to bubble/propagate normally
-      if (modalElement && modalElement.contains(e.target as Node)) {
-        return;
-      }
-
-      // If the modal is currently open, block all other interactions
-      if (modalOpenRef.current) {
-        e.preventDefault();
-        e.stopPropagation();
-        return;
-      }
-
-      // If the modal was closed, allow the very next click to execute
-      if (allowNextClickRef.current) {
-        allowNextClickRef.current = false;
-        return;
-      }
-
-      // Otherwise, block the click and show the modal
-      e.preventDefault();
-      e.stopPropagation();
-      setShowLetterPopup(true);
-    };
-
-    window.addEventListener('click', handleCaptureClick, true);
-    return () => {
-      window.removeEventListener('click', handleCaptureClick, true);
-    };
-  }, [view, user]);
-
   const handleCloseModal = () => {
     setShowLetterPopup(false);
-    allowNextClickRef.current = true;
   };
 
   // Research history shared states
