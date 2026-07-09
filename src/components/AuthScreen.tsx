@@ -14,12 +14,38 @@ export default function AuthScreen({ onAuthSuccess, onAddToast }: AuthScreenProp
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !password.trim()) {
-      onAddToast("Please fill in all fields! 💙");
+    if (!email.trim()) {
+      onAddToast("Please fill in your email address! ✉️");
+      return;
+    }
+
+    if (isForgotPassword) {
+      setIsLoading(true);
+      try {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: typeof window !== 'undefined' ? `${window.location.origin}/` : undefined,
+        });
+
+        if (error) throw error;
+
+        onAddToast("Password reset link sent! Check your email! ✉️");
+        setIsForgotPassword(false);
+      } catch (err: any) {
+        console.error(err);
+        onAddToast(`Error: ${err.message || "Failed to send password reset email."}`);
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
+    if (!password.trim()) {
+      onAddToast("Please fill in your password! 🔒");
       return;
     }
 
@@ -85,9 +111,11 @@ export default function AuthScreen({ onAuthSuccess, onAddToast }: AuthScreenProp
           </div>
           <h2 className={styles.title}>Mega's Guide</h2>
           <p className={styles.subtitle}>
-            {isSignUp 
-              ? "Create your personal medical companion account." 
-              : "Welcome back, Baby! Ready to study?"
+            {isForgotPassword
+              ? "Reset your password to access your guide."
+              : isSignUp 
+                ? "Create your personal medical companion account." 
+                : "Welcome back, Baby! Ready to study?"
             }
           </p>
         </div>
@@ -109,40 +137,74 @@ export default function AuthScreen({ onAuthSuccess, onAddToast }: AuthScreenProp
             </div>
           </div>
 
-          <div className={styles.inputGroup}>
-            <label className={styles.label}>Password</label>
-            <div className={styles.inputWrapper}>
-              <Lock className={styles.inputIcon} size={16} />
-              <input
-                type="password"
-                className={styles.input}
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={isLoading}
-              />
+          {!isForgotPassword && (
+            <div className={styles.inputGroup}>
+              <div className={styles.passwordLabelRow}>
+                <label className={styles.label}>Password</label>
+                {!isSignUp && (
+                  <button 
+                    type="button" 
+                    className={styles.forgotBtn}
+                    onClick={() => setIsForgotPassword(true)}
+                    disabled={isLoading}
+                  >
+                    Forgot Password?
+                  </button>
+                )}
+              </div>
+              <div className={styles.inputWrapper}>
+                <Lock className={styles.inputIcon} size={16} />
+                <input
+                  type="password"
+                  className={styles.input}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  disabled={isLoading}
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           <button type="submit" className={styles.submitBtn} disabled={isLoading}>
             <Sparkles size={16} className={isLoading ? "animate-spin" : ""} />
-            <span>{isLoading ? "Please wait..." : isSignUp ? "Create Account" : "Access Guide"}</span>
+            <span>
+              {isLoading 
+                ? "Please wait..." 
+                : isForgotPassword 
+                  ? "Send Reset Link" 
+                  : isSignUp 
+                    ? "Create Account" 
+                    : "Access Guide"
+              }
+            </span>
           </button>
         </form>
 
         <div className={styles.footer}>
-          <button 
-            type="button" 
-            className={styles.toggleBtn}
-            onClick={() => setIsSignUp(!isSignUp)}
-            disabled={isLoading}
-          >
-            {isSignUp 
-              ? "Already have an account? Log In" 
-              : "Don't have an account? Sign Up"
-            }
-          </button>
+          {isForgotPassword ? (
+            <button 
+              type="button" 
+              className={styles.toggleBtn}
+              onClick={() => setIsForgotPassword(false)}
+              disabled={isLoading}
+            >
+              Back to Login
+            </button>
+          ) : (
+            <button 
+              type="button" 
+              className={styles.toggleBtn}
+              onClick={() => setIsSignUp(!isSignUp)}
+              disabled={isLoading}
+            >
+              {isSignUp 
+                ? "Already have an account? Log In" 
+                : "Don't have an account? Sign Up"
+              }
+            </button>
+          )}
           
           <p className={styles.heartNotice}>
             Built with love just for you. 🩺❤️
