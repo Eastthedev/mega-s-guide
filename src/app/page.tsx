@@ -23,7 +23,6 @@ import ResearchTab from '../components/ResearchTab';
 import AuthScreen from '../components/AuthScreen';
 import MnemonicsTab from '../components/MnemonicsTab';
 import LockinTab from '../components/LockinTab';
-import ImportantMessageModal from '../components/ImportantMessageModal';
 import KeepingUpTab from '../components/KeepingUpTab';
 import { 
   getUserStats, syncUserStats, supabase, getResearchSessions, ResearchSession,
@@ -44,20 +43,6 @@ export default function Home() {
   const [jumpNotes, setJumpNotes] = useState<string | undefined>(undefined);
   const [user, setUser] = useState<any>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
-
-  // Popup Modal state
-  const [showLetterPopup, setShowLetterPopup] = useState(false);
-
-  // Automatically show the popup when the study view mounts or user logs in
-  useEffect(() => {
-    if (view === 'study' && user) {
-      setShowLetterPopup(true);
-    }
-  }, [view, user]);
-
-  const handleCloseModal = () => {
-    setShowLetterPopup(false);
-  };
 
   // Research history shared states
   const [researchSessions, setResearchSessions] = useState<ResearchSession[]>([]);
@@ -851,9 +836,6 @@ export default function Home() {
               {renderStudyTab()}
             </main>
           </div>
-          {showLetterPopup && (
-            <ImportantMessageModal onClose={handleCloseModal} />
-          )}
         </div>
       )}
     </div>
