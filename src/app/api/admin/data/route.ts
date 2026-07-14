@@ -35,9 +35,9 @@ export async function GET(request: NextRequest) {
 
     // 3. Connect to Database using pg
     const client = new Client({
-      host: process.env.DB_HOST || '2a05:d014:14a4:4002:8af6:7d54:1f6a:9b37',
-      port: parseInt(process.env.DB_PORT || '5432', 10),
-      user: process.env.DB_USER || 'postgres',
+      host: process.env.DB_HOST || 'aws-1-eu-central-1.pooler.supabase.com',
+      port: parseInt(process.env.DB_PORT || '6543', 10),
+      user: process.env.DB_USER || 'postgres.oeltphtusjrvgcdtvnet',
       password: process.env.DB_PASSWORD || 'cNG8y@JnY6SD@v3',
       database: process.env.DB_NAME || 'postgres',
       ssl: { rejectUnauthorized: false }
