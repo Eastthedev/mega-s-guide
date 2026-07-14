@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Heart, MessageSquare, FileText, Sparkles, BookOpen, 
   HelpCircle, Trophy, Flame, Play, Award, X, Search, Home, Lightbulb,
-  Plus, Trash2, ChevronDown, ChevronRight, Calendar
+  Plus, Trash2, ChevronDown, ChevronRight, Calendar, Shield
 } from 'lucide-react';
 import { 
   deleteResearchSession, 
@@ -22,6 +22,7 @@ interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
   onAddToast?: (msg: string) => void;
+  user?: any;
 
   // Research history props
   researchSessions?: any[];
@@ -60,6 +61,7 @@ export default function Sidebar({
   isOpen, 
   onClose,
   onAddToast,
+  user,
   
   researchSessions = [],
   currentResearchSessionId = '',
@@ -242,6 +244,10 @@ export default function Sidebar({
     setHasQuizAce(quizAce);
   }, [activeTab]);
 
+  const adminEmailsEnv = process.env.NEXT_PUBLIC_ADMIN_EMAILS || 'repotrain@gmail.com';
+  const adminEmails = adminEmailsEnv.split(',').map(e => e.trim().toLowerCase());
+  const isAdmin = user?.email && adminEmails.includes(user.email.toLowerCase());
+
   const navItems = [
     { id: 'overview', label: 'Dashboard', icon: Home },
     { id: 'keepingup', label: 'Keeping up', icon: Heart },
@@ -254,6 +260,10 @@ export default function Sidebar({
     { id: 'research', label: 'Research', icon: Search },
     { id: 'lockin', label: '3rd MB Lockin', icon: Calendar }
   ];
+
+  if (isAdmin) {
+    navItems.push({ id: 'admin', label: 'Admin Panel', icon: Shield });
+  }
 
   const renderHistorySubmenu = (itemId: string) => {
     if (itemId === 'research') {

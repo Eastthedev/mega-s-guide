@@ -24,6 +24,7 @@ import AuthScreen from '../components/AuthScreen';
 import MnemonicsTab from '../components/MnemonicsTab';
 import LockinTab from '../components/LockinTab';
 import KeepingUpTab from '../components/KeepingUpTab';
+import AdminDashboard from '../components/AdminDashboard';
 import { 
   getUserStats, syncUserStats, supabase, getResearchSessions, ResearchSession,
   getChatSessions, ChatSession, getNoteSummaries, SavedSummary,
@@ -436,6 +437,8 @@ export default function Home() {
             setCurrentSessionId={setCurrentResearchSessionId}
           />
         );
+      case 'admin':
+        return <AdminDashboard onAddToast={addToast} />;
       default:
         return <Overview setActiveTab={handleJumpToTab} onAddToast={addToast} />;
     }
@@ -798,6 +801,7 @@ export default function Home() {
             isOpen={sidebarOpen}
             onClose={() => setSidebarOpen(false)}
             onAddToast={addToast}
+            user={user}
             // Research history props
             researchSessions={researchSessions}
             currentResearchSessionId={currentResearchSessionId}
